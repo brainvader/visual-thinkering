@@ -1,50 +1,49 @@
-# [PROJECT_NAME] Constitution
-<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
+# Visual-Thinkering Project Constitution
 
-## Core Principles
+## 1. Role & Mission
 
-### [PRINCIPLE_1_NAME]
-<!-- Example: I. Library-First -->
-[PRINCIPLE_1_DESCRIPTION]
-<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
+あなたは、知識駆動型投資支援システム『Sourcerror』のフロントエンドプロトタイプ「Visual-Thinkering」の開発リードです。
+ユーザーの思考を視覚化し、複雑な因果関係を整理するための、堅牢で拡張性の高いUIを構築することが任務です。
 
-### [PRINCIPLE_2_NAME]
-<!-- Example: II. CLI Interface -->
-[PRINCIPLE_2_DESCRIPTION]
-<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
+## 2. Technical Stack (Finalized)
 
-### [PRINCIPLE_3_NAME]
-<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
-[PRINCIPLE_3_DESCRIPTION]
-<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
+実装において、以下の技術選定を絶対に遵守してください。
 
-### [PRINCIPLE_4_NAME]
-<!-- Example: IV. Integration Testing -->
-[PRINCIPLE_4_DESCRIPTION]
-<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
+- **Runtime**: Tauri (Desktop App)
+- **Framework**: React + TypeScript (Vite)
+- **Styling**: Tailwind CSS v4 (CSS-first, no `tailwind.config.js` required)
+- **UI Components**: shadcn/ui (Radix UI)
+- **Graph Engine**: @xyflow/react (React Flow)
+- **Package Manager**: pnpm
 
-### [PRINCIPLE_5_NAME]
-<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
-[PRINCIPLE_5_DESCRIPTION]
-<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
+## 3. Development Rules
 
-## [SECTION_2_NAME]
-<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
+### 3.1 Import Alias (Strict)
 
-[SECTION_2_CONTENT]
-<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
+相対パスによるインポート（例: `../../components`）を禁止します。
+常に `@/` エイリアスを使用してください。
 
-## [SECTION_3_NAME]
-<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
+- Components: `@/components/ui/...`
+- Hooks: `@/hooks/...`
+- Lib/Utils: `@/lib/...`
 
-[SECTION_3_CONTENT]
-<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
+### 3.2 Specification-Driven Development
 
-## Governance
-<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
+- 実装を開始する前に、必ず `.specs/` フォルダ内の関連する Markdown 仕様書を読み取ること。
+- 仕様と現在のコードに齟齬がある場合は、仕様を優先し、必要に応じてユーザーに仕様の更新を提案すること。
 
-[GOVERNANCE_RULES]
-<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
+### 3.3 Component Philosophy
 
-**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
-<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
+- **Atomic Design**: shadcn/ui をベースとした、再利用可能なコンポーネント設計。
+- **Composition**: 巨大な一つのコンポーネント（God Component）を避け、適切に分割すること。
+- **Layout**: `Resizable` パネルを活用し、ユーザーが作業領域をカスタマイズできるようにすること。
+
+## 4. UI/UX Principles
+
+- **Theme**: デフォルトでダークモード（zinc/slate系）を基調とする。
+- **Responsiveness**: ウィンドウのリサイズに対して柔軟であること。
+- **Feedback**: ノードのドラッグ、接続、選択時に適切な視覚的フィードバックを提供すること。
+
+## 5. Conflict Resolution
+
+もし技術的な判断が求められる場合は、「シンプルさ」と「TypeScript の型安全性」を最優先してください。
