@@ -1,51 +1,50 @@
-import { useState } from "react";
-import reactLogo from "./assets/react.svg";
-import { invoke } from "@tauri-apps/api/core";
-import "./App.css";
+import React, { useState, useCallback } from 'react';
+import { ReactFlow, Background, Controls, addEdge, Connection, Edge } from '@xyflow/react';
+import '@xyflow/react/dist/style.css';
 
-function App() {
-  const [greetMsg, setGreetMsg] = useState("");
-  const [name, setName] = useState("");
+// 初期ノード（例：リハビリ会議の菱形）
+const initialNodes = [
+  { id: 'conf-1', type: 'default', data: { label: 'rehab-conference' }, position: { x: 250, y: 5 } },
+];
 
-  async function greet() {
-    // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
-    setGreetMsg(await invoke("greet", { name }));
-  }
+export default function App() {
+  const [activeTab, setActiveTab] = useState<'graph' | 'typeql'>('graph');
+  const [nodes, setNodes] = useState(initialNodes);
+  const [edges, setEdges] = useState<Edge[]>([]);
+
+  // 接続時のアクション（ここでTypeQL生成のフックを呼ぶ）
+  const onConnect = useCallback((params: Connection) => {
+    setEdges((eds) => addEdge(params, eds));
+    console.log("New connection established:", params);
+  }, []);
 
   return (
-    <main className="container">
-      <h1>Welcome to Tauri + React</h1>
-
-      <div className="row">
-        <a href="https://vite.dev" target="_blank">
-          <img src="/vite.svg" className="logo vite" alt="Vite logo" />
-        </a>
-        <a href="https://tauri.app" target="_blank">
-          <img src="/tauri.svg" className="logo tauri" alt="Tauri logo" />
-        </a>
-        <a href="https://react.dev" target="_blank">
-          <img src={reactLogo} className="logo react" alt="React logo" />
-        </a>
+    <div style={{ width: '100vw', height: '100vh', display: 'flex', flexDirection: 'column' }}>
+      {/* タブ切り替えアイコンバー */}
+      <div style={{ padding: '10px', background: '#333', display: 'flex', gap: '20px' }}>
+        <button onClick={() => setActiveTab('graph')} style={{ opacity: activeTab === 'graph' ? 1 : 0.5 }}>
+          🌐 Graph View
+        </button>
+        <button onClick={() => setActiveTab('typeql')} style={{ opacity: activeTab === 'typeql' ? 1 : 0.5 }}>
+          📄 TypeQL View
+        </button>
       </div>
-      <p>Click on the Tauri, Vite, and React logos to learn more.</p>
 
-      <form
-        className="row"
-        onSubmit={(e) => {
-          e.preventDefault();
-          greet();
-        }}
-      >
-        <input
-          id="greet-input"
-          onChange={(e) => setName(e.currentTarget.value)}
-          placeholder="Enter a name..."
-        />
-        <button type="submit">Greet</button>
-      </form>
-      <p>{greetMsg}</p>
-    </main>
+      {/* メインコンテンツ */}
+      <div style={{ flexGrow: 1 }}>
+        {activeTab === 'graph' ? (
+          <ReactFlow nodes={nodes} edges={edges} onConnect={onConnect} fitView>
+            <Background />
+            <Controls />
+          </ReactFlow>
+        ) : (
+          <div style={{ padding: '20px', backgroundColor: '#1e1e1e', color: '#fff', height: '100%' }}>
+            <pre>
+              {`define\n  ${edges.map(e => `${e.source} plays ${e.target}:participant;`).join('\n  ')}`}
+            </pre>
+          </div>
+        )}
+      </div>
+    </div>
   );
 }
-
-export default App;
