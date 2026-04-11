@@ -1,49 +1,50 @@
-# Visual-Thinkering Constitution
+# [PROJECT_NAME] Constitution
+<!-- Example: Spec Constitution, TaskFlow Constitution, etc. -->
 
 ## Core Principles
 
-### I. Schema-First Visual Thinking
+### [PRINCIPLE_1_NAME]
+<!-- Example: I. Library-First -->
+[PRINCIPLE_1_DESCRIPTION]
+<!-- Example: Every feature starts as a standalone library; Libraries must be self-contained, independently testable, documented; Clear purpose required - no organizational-only libraries -->
 
-すべての視覚的要素は、TypeDB のオントロジー（スキーマ）に直結していなければならない。「ただの図形」は存在せず、すべてのノードとエッジは、常にバックエンドで実行可能な TypeQL に変換可能な論理的意味を持つ。
+### [PRINCIPLE_2_NAME]
+<!-- Example: II. CLI Interface -->
+[PRINCIPLE_2_DESCRIPTION]
+<!-- Example: Every library exposes functionality via CLI; Text in/out protocol: stdin/args → stdout, errors → stderr; Support JSON + human-readable formats -->
 
-### II. Bidirectional Synchronization
+### [PRINCIPLE_3_NAME]
+<!-- Example: III. Test-First (NON-NEGOTIABLE) -->
+[PRINCIPLE_3_DESCRIPTION]
+<!-- Example: TDD mandatory: Tests written → User approved → Tests fail → Then implement; Red-Green-Refactor cycle strictly enforced -->
 
-「グラフUI」と「TypeQLソースコード」は常に双方向で同期され、どちらの変更も他方に即座に反映される。真実のソース（Source of Truth）は React Flow の状態オブジェクト（Nodes/Edges）であり、それは常に TypeQL へのシリアライズが可能であること。
+### [PRINCIPLE_4_NAME]
+<!-- Example: IV. Integration Testing -->
+[PRINCIPLE_4_DESCRIPTION]
+<!-- Example: Focus areas requiring integration tests: New library contract tests, Contract changes, Inter-service communication, Shared schemas -->
 
-### III. Radical Simplicity in UI
+### [PRINCIPLE_5_NAME]
+<!-- Example: V. Observability, VI. Versioning & Breaking Changes, VII. Simplicity -->
+[PRINCIPLE_5_DESCRIPTION]
+<!-- Example: Text I/O ensures debuggability; Structured logging required; Or: MAJOR.MINOR.BUILD format; Or: Start simple, YAGNI principles -->
 
-ビジュアル・シンカーのフローを妨げないため、UI操作は極力シンプルに保つ。
+## [SECTION_2_NAME]
+<!-- Example: Additional Constraints, Security Requirements, Performance Standards, etc. -->
 
-- **Entity**: 矩形。
-- **Relation**: 菱形。
-- **Role**: 接続線上のテキスト。
-  これら基本要素以外の複雑な装飾よりも、構造の明快さを優先する。
+[SECTION_2_CONTENT]
+<!-- Example: Technology stack requirements, compliance standards, deployment policies, etc. -->
 
-### IV. Local-First & Privacy-Centric
+## [SECTION_3_NAME]
+<!-- Example: Development Workflow, Review Process, Quality Gates, etc. -->
 
-Tauri 2.0 の特性を活かし、データはユーザーのローカル環境に保存されることを基本とする。デフォルトではオフラインでの思考・設計をサポートし、データの所有権をユーザーに帰属させる。
-
-### V. Developer-AI Symbiosis
-
-`.specs` ディレクトリは、人間とAI（Cursor/Copilot等）の共有メモリである。仕様書は人間が読みやすく、かつAIがコードを生成するために十分な「構造化された具体的指示」を含まなければならない。
-
-## Technical Constraints
-
-- **Stack**: Tauri 2.0, React + Vite, React Flow, shadcn/ui.
-- **Package Manager**: `pnpm` 必須（fnm による Node.js 管理）。
-- **Language**: TypeScript (Strict Mode).
-- **Format**: 仕様管理はすべて `.specs/*.md` で行い、Git 管理下に置く。
-
-## Development Workflow
-
-1. **Spec-First Development**: 実装の前に、必ず `.specs/` 内の該当する Markdown を更新し、設計の合意形成を行う。
-2. **Atomic Commits**: 仕様の変更と実装の変更を一つのコミットにまとめ、履歴の整合性を保つ。
-3. **TypeQL Validation**: 生成された TypeQL が、TypeDB の構文規約（Syntax）に完全に準拠していることを常に検証する。
+[SECTION_3_CONTENT]
+<!-- Example: Code review requirements, testing gates, deployment approval process, etc. -->
 
 ## Governance
+<!-- Example: Constitution supersedes all other practices; Amendments require documentation, approval, migration plan -->
 
-- 本憲法はプロジェクト内のすべての設計判断、コーディング規約に優先する。
-- 実装において憲法と矛盾が生じた場合、コードではなく憲法を修正するか、実装を破棄するかの議論を最初に行う。
-- AI への指示（Prompting）は、常に `.specs` の内容をコンテキストとして参照させてから行うこと。
+[GOVERNANCE_RULES]
+<!-- Example: All PRs/reviews must verify compliance; Complexity must be justified; Use [GUIDANCE_FILE] for runtime development guidance -->
 
-**Version**: 1.0.0 | **Ratified**: 2026-04-11 | **Last Amended**: 2026-04-11
+**Version**: [CONSTITUTION_VERSION] | **Ratified**: [RATIFICATION_DATE] | **Last Amended**: [LAST_AMENDED_DATE]
+<!-- Example: Version: 2.1.1 | Ratified: 2025-06-13 | Last Amended: 2025-07-16 -->
