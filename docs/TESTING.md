@@ -55,16 +55,23 @@ it("足し算", () => {
 
 ```
 src/
-├── store.test.ts                       # ストアのユニットテスト
-├── lib/typeql.test.ts                  # 純粋関数のユニットテスト
+├── App.integration.test.tsx              # 統合テスト（複数コンポーネントの連動）
+├── store.test.ts                         # ストアのユニットテスト
+├── lib/typeql.test.ts                    # 純粋関数のユニットテスト
 ├── components/
-│   ├── NarrationPanel.test.tsx         # コンポーネントテスト
-│   ├── LLMAssistant.test.tsx           # コンポーネントテスト
-│   └── Sidebar.test.tsx                # コンポーネントテスト
-└── test/setup.ts                       # ResizeObserver モック
+│   ├── NarrationPanel.test.tsx           # コンポーネントテスト
+│   ├── LLMAssistant.test.tsx             # コンポーネントテスト
+│   ├── Sidebar.test.tsx                  # コンポーネントテスト
+│   └── nodes/
+│       ├── EntityNode.test.tsx           # カスタムノードテスト
+│       ├── RelationNode.test.tsx
+│       └── AttributeNode.test.tsx
+└── test/setup.ts                         # ResizeObserver / Handle モック
+e2e/
+└── node-operations.spec.ts               # Playwright E2E テスト（将来）
 ```
 
-**ルール**: テストファイルはソースと同階層に配置する。
+**ルール**: テストファイルはソースと同階層に配置する。E2E テストのみ `e2e/` に分離する。
 
 ---
 
@@ -83,7 +90,7 @@ beforeEach(() => {
 
 **テスト対象:**
 
-- state 変更ロジック（deleteNode, setNarration など）
+- state 変更ロジック（addNode, deleteNode, updateNodeLabel, setNarration など）
 - エッジの連動削除など副作用
 
 ### 純粋関数（lib/）
@@ -94,7 +101,7 @@ beforeEach(() => {
 expect(result).toContain("Person sub entity");
 ```
 
-### コンポーネント
+### コンポーネント（単体）
 
 React Testing Library + userEvent を使う。**実装の詳細ではなくユーザー視点でテストする。**
 
@@ -112,6 +119,77 @@ expect(component.state.isDisabled).toBe(true);
 - `getByTestId` は最終手段
 - ユーザーイベントは `userEvent`（`fireEvent` より現実的）
 - コールバックの検証は `vi.fn()` で
+- React Flow の `Handle` など Provider 依存のコンポーネントは `vi.mock` でモックする
+
+```typescript
+// Handle のモックパターン（nodes/ 配下のテストで共通）
+vi.mock("@xyflow/react", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@xyflow/react")>();
+  return { ...actual, Handle: () => null };
+});
+```
+
+### 統合テスト（App レベル）
+
+**目的:** 複数コンポーネントをまたぐ「つなぎ目」の動作を検証する。ユニットテストでは発見できない連動バグを対象にする。
+
+**対象シナリオ:**
+
+- ノード削除後に `selectedNode` がリセットされ Sidebar が閉じること
+- ノード追加後に追加したノードが即選択されて Sidebar に表示されること
+- ラベル編集が Sidebar から可能であること
+
+**制約:** `ReactFlow` 本体はイベントハンドリングが複雑なため、統合テストでもモックが必要な場合がある。
+
+```typescript
+// src/App.integration.test.tsx のイメージ
+vi.mock('@xyflow/react', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@xyflow/react')>();
+    return {
+        ...actual,
+        ReactFlow: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+        Handle: () => null,
+    };
+});
+
+it('ノード削除後に Sidebar のインスペクターが閉じること', async () => {
+    render(<App />);
+    // ノードを選択 → Delete → "Select a node" メッセージが出る
+});
+```
+
+### E2E テスト（Playwright）— 将来実装
+
+**目的:** ブラウザ操作が必要なシナリオを実際の環境で検証する。ユニット・統合テストでカバーできない操作を対象にする。
+
+**対象シナリオ（優先度順）:**
+
+| シナリオ                            | 理由                             |
+| ----------------------------------- | -------------------------------- |
+| 右クリック → Quick Add → ノード追加 | 右クリックは jsdom で再現不可    |
+| ノード右クリック → Delete Node      | 同上                             |
+| ノードのドラッグ移動                | マウスイベントの連続が必要       |
+| ラベル編集 → Enter 確定             | 統合テストで代替可能だが確認用に |
+
+**セットアップ（導入時）:**
+
+```bash
+pnpm add -D @playwright/test
+pnpm dlx playwright install chromium
+```
+
+```typescript
+// e2e/node-operations.spec.ts のイメージ
+test("右クリックでノードを追加できる", async ({ page }) => {
+  await page.goto("http://localhost:1420");
+  await page.locator(".react-flow__pane").click({ button: "right" });
+  await expect(page.getByText("Quick Add")).toBeVisible();
+  await page.getByTitle("Entity").click();
+  await expect(page.locator(".react-flow__node")).toHaveCount(2);
+});
+```
+
+**Tauri 統合:** `pnpm dev`（Vite のみ）で起動した Web モードに対してテストを実行する。デスクトップアプリモードの E2E は `@tauri-apps/plugin-playwright` が必要。
 
 ---
 
