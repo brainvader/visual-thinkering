@@ -24,7 +24,7 @@ interface GraphState {
     onConnect: OnConnect;
     setNodes: (nodes: Node<TypeDBNodeData>[]) => void;
     deleteNode: (nodeId: string) => void;
-    addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => void;
+    addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
     updateNodeLabel: (nodeId: string, label: string) => void;
     setNarration: (text: string) => void;
 }
@@ -81,6 +81,7 @@ export const useStore = create<GraphState>((set, get) => ({
             type,
         };
         set({ nodes: [...get().nodes, newNode] });
+        return newNode.id;
     },
 
     updateNodeLabel: (nodeId: string, label: string) => {
