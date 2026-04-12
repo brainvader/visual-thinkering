@@ -1,3 +1,4 @@
+import { LLMAssistant } from './components/LLMAssistant';
 import React, { useCallback } from 'react';
 import { Node } from '@xyflow/react';
 import { TypeDBNodeData } from '@/types';
@@ -29,6 +30,12 @@ export default function App() {
 
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
+  }, []);
+
+  // 将来 LLM API を呼び出す箇所。今は console.log で受け取るだけ
+  const handleSendInstruction = useCallback((instruction: string) => {
+    // TODO: LLM API に instruction + 現在の nodes/edges を渡してグラフを更新する
+    console.log('[LLM] instruction:', instruction);
   }, []);
 
   return (
@@ -77,27 +84,9 @@ export default function App() {
 
               <ResizableHandle withHandle />
 
-              {/* --- 下部パネル (フッター): LLM インターフェース --- */}
+              {/* JSX 内、LLMインターフェースパネル部分を置き換え */}
               <ResizablePanel defaultSize={25} minSize={10}>
-                <div className="flex h-full flex-col border-t bg-background">
-                  <div className="px-4 py-2 border-b bg-muted/30 flex justify-between items-center">
-                    <span className="text-xs font-bold uppercase text-muted-foreground">LLM Assistant</span>
-                  </div>
-                  <div className="flex-1 p-3 flex gap-3">
-                    <textarea
-                      className="flex-1 p-2 text-sm border rounded bg-muted/10 resize-none focus:ring-1 focus:ring-primary outline-none"
-                      placeholder="「語り」からエンティティを抽出してグラフを更新して..."
-                    />
-                    <div className="flex flex-col gap-2">
-                      <button className="px-4 py-2 bg-primary text-primary-foreground rounded text-xs font-medium hover:opacity-90 transition-opacity whitespace-nowrap">
-                        Send Instruction
-                      </button>
-                      <button className="px-4 py-2 border rounded text-xs font-medium hover:bg-muted transition-colors whitespace-nowrap">
-                        Clear Context
-                      </button>
-                    </div>
-                  </div>
-                </div>
+                <LLMAssistant onSendInstruction={handleSendInstruction} />
               </ResizablePanel>
             </ResizablePanelGroup>
           </ResizablePanel>
