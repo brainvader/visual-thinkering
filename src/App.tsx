@@ -38,6 +38,12 @@ export default function App() {
     setSelectedNode(null);
   }, []);
 
+  // 削除後にインスペクターも閉じる
+  const handleDeleteNode = useCallback((nodeId: string) => {
+    deleteNode(nodeId);
+    setSelectedNode(null);
+  }, [deleteNode]);
+
   // ノード追加直後に選択状態にする
   // addNode が新ノードの id を返すので store から再取得する必要がない
   const onNodeAdded = useCallback((nodeId: string) => {
@@ -81,7 +87,7 @@ export default function App() {
                     onNodeClick={onNodeClick}
                     onPaneClick={onPaneClick}
                     selectedNode={selectedNode}
-                    deleteNode={deleteNode}
+                    deleteNode={handleDeleteNode}
                     addNode={addNode}
                     onNodeAdded={onNodeAdded}
                   />
@@ -103,7 +109,7 @@ export default function App() {
           <ResizablePanel defaultSize={20} minSize={15}>
             <Sidebar
               selectedNode={selectedNode}
-              deleteNode={deleteNode}
+              deleteNode={handleDeleteNode}
               updateNodeLabel={updateNodeLabel}
             />
           </ResizablePanel>

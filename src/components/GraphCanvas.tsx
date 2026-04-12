@@ -143,6 +143,7 @@ function GraphCanvasInner({
                 onPaneContextMenu={handlePaneContextMenu}
                 nodeTypes={nodeTypes}
                 fitView
+                fitViewOptions={{ padding: 0.5 }}
             >
                 <Background variant={BackgroundVariant.Dots} color="#e2e2e7" gap={20} />
                 <Controls />

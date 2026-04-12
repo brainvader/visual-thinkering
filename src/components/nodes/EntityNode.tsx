@@ -19,11 +19,16 @@ export function EntityNode({ data, selected }: NodeProps<FlowNode<TypeDBNodeData
                     : 'border-blue-400',
             ].join(' ')}
         >
-            {/* 上下左右にハンドル（接続ポイント）を配置 */}
-            <Handle type="target" position={Position.Top} />
-            <Handle type="source" position={Position.Bottom} />
-            <Handle type="target" position={Position.Left} />
-            <Handle type="source" position={Position.Right} />
+            {/* 上下左右それぞれに source/target の両方を配置
+                id を付けて区別することで全方向から双方向接続が可能になる */}
+            <Handle type="target" position={Position.Top} id="top-target" />
+            <Handle type="source" position={Position.Top} id="top-source" />
+            <Handle type="target" position={Position.Bottom} id="bottom-target" />
+            <Handle type="source" position={Position.Bottom} id="bottom-source" />
+            <Handle type="target" position={Position.Left} id="left-target" />
+            <Handle type="source" position={Position.Left} id="left-source" />
+            <Handle type="target" position={Position.Right} id="right-target" />
+            <Handle type="source" position={Position.Right} id="right-source" />
 
             <span>{data.label}</span>
         </div>

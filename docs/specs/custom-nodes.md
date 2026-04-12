@@ -36,10 +36,24 @@ src/components/nodes/
 
 ### 共通仕様
 
-- React Flow の `NodeProps<TypeDBNodeData>` を props として受け取る
-- `Handle`（接続ポイント）を上下左右に配置する
+- React Flow の `NodeProps<Node<TypeDBNodeData>>` を props として受け取る
+- 上下左右の各方向に `source` / `target` の **両方** の Handle を配置する
+- 各 Handle には一意の `id` を付与して区別する（例: `top-source`, `top-target`）
+- これにより全方向から双方向の接続が可能になる
 - 選択状態（`selected`）のときにハイライト表示する
 - ラベルは中央揃えで表示する
+
+```tsx
+// 全ノード共通の Handle パターン
+<Handle type="target" position={Position.Top}    id="top-target" />
+<Handle type="source" position={Position.Top}    id="top-source" />
+<Handle type="target" position={Position.Bottom} id="bottom-target" />
+<Handle type="source" position={Position.Bottom} id="bottom-source" />
+<Handle type="target" position={Position.Left}   id="left-target" />
+<Handle type="source" position={Position.Left}   id="left-source" />
+<Handle type="target" position={Position.Right}  id="right-target" />
+<Handle type="source" position={Position.Right}  id="right-source" />
+```
 
 ### EntityNode（角丸矩形）
 
