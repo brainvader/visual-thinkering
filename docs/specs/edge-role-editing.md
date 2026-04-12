@@ -97,6 +97,18 @@ onEdgeClick: (event: React.MouseEvent, edge: Edge<TypeDBEdgeData>) => void;
 
 ## エッジのビジュアル
 
+### 矢印マーカー
+
+接続方向を明示するため、すべてのエッジに `ArrowClosed` マーカーを付与する。`onConnect` 時に `markerEnd` を設定する。
+
+```typescript
+markerEnd: {
+  type: MarkerType.ArrowClosed;
+}
+```
+
+### ロール名ラベル
+
 選択中のエッジにロール名をラベルとして表示する。未設定の場合は空表示（エラー表示はしない）。
 
 ```typescript
