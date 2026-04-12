@@ -1,12 +1,12 @@
 // src/components/Sidebar.tsx
-
+import { Node } from '@xyflow/react';
+import { TypeDBNodeData } from '@/types';
 import { Button } from '@/components/ui/button';
 
 // Propsの型定義に deleteNode を追加
 interface SidebarProps {
-    selectedNode: any; // もしNode型があるなら Node | null
-    deleteNode: (id: string) => void; // これを追加！
-    // setNodes など、もう使わない Props があれば削除してOKです
+    selectedNode: Node<TypeDBNodeData> | null; // any を撲滅
+    deleteNode: (id: string) => void;
 }
 
 export const Sidebar = ({ selectedNode, deleteNode }: SidebarProps) => {
