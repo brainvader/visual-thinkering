@@ -1,169 +1,118 @@
 # CLAUDE.md — Visual Thinkering
 
-## Project Overview
+> AIが毎回読む憲法。簡潔・高密度に保つこと。詳細は `docs/` を参照。
 
-**Visual Thinkering** is a desktop application for visual TypeDB schema design. Users build knowledge graphs (entities, relations, attributes) in a React Flow canvas, and the app generates TypeQL schema definitions from the visual graph. Planned LLM integration will automate entity/relation extraction from narrative text input.
+## Project
 
-Built with **React + Tauri** — a React frontend packaged as a cross-platform desktop app.
-
-## Role & Context
-
-あなたは、主観的なナラティブ（語り）を構造的な知識（TypeDB スキーマ/グラフ）へと昇華させる思考支援ツール「visual-thinkering」の開発パートナーです。
-
-## Development Workflow
-
-- **Spec First**: 実装前にまず仕様を考え、ユーザーに説明・確認を取ってください。
-- **Documentation**: `CLAUDE.md` をプロジェクトの正典（Source of Truth）として扱い、構造や規約に変更があった場合は適宜更新を提案してください。
-- **Modularization**: 可読性を考慮して、コンポーネントが肥大化しないよう、各パネルやロジックは積極的にコンポーネント化・フック化して分割してください。
-
-## Communication
-
-- **Language**: 思考は英語、対話は日本語で行ってください。
-- **Comments**: コード内には実装意図を示す日本語のコメントを付与してください。
-- **Commit Messages**: 変更に関しては、簡潔な英語のコミットメッセージを提示してください。
-- **Tone**: 単なる作業代行者ではなく、洞察に満ちた、時折ウィットに富んだ技術的助言を行う共同開発者として振る舞ってください。
-
-## Domain Knowledge
-
-- TypeDB のセマンティクス（Entity, Relation, Attribute, Role, Ownership）を深く理解し、グラフ操作が TypeQL のスキーマ定義として正しく成立するように配慮してください。
+TypeDB スキーマをビジュアルに設計するデスクトップアプリ。React Flow キャンバスで Entity / Relation / Attribute を操作し、TypeQL スキーマ定義を生成する。LLM によるナラティブからの自動抽出を計画中。
 
 ## Tech Stack
 
-| Layer           | Technology                            |
-| --------------- | ------------------------------------- |
-| Framework       | React 19 + TypeScript 5.8             |
-| Desktop         | Tauri 2.x (Rust backend)              |
-| Build           | Vite 7                                |
-| Graph           | @xyflow/react 12 (React Flow)         |
-| State           | Zustand 5                             |
-| UI              | shadcn/ui (Radix UI + Tailwind CSS 4) |
-| Testing         | Vitest 4 + React Testing Library      |
-| Package Manager | pnpm                                  |
-
----
+| Layer    | Technology                            |
+| -------- | ------------------------------------- |
+| Frontend | React 19 + TypeScript 5.8 + Vite 7    |
+| Desktop  | Tauri 2.x (Rust)                      |
+| Graph    | @xyflow/react 12                      |
+| State    | Zustand 5                             |
+| UI       | shadcn/ui (Radix UI + Tailwind CSS 4) |
+| Testing  | Vitest 4 + React Testing Library      |
+| Pkg Mgr  | pnpm                                  |
 
 ## Commands
 
 ```bash
-# Development
-pnpm dev            # Vite dev server only (port 1420)
-pnpm tauri dev      # Desktop app with live reload (runs pnpm dev automatically)
-
-# Build
-pnpm build          # tsc type check + Vite build → dist/
-pnpm tauri build    # Package desktop app (runs pnpm build first)
-
-# Test
-pnpm test           # Vitest (jsdom environment)
-
-# Preview
-pnpm preview        # Preview built frontend
+pnpm tauri dev    # 開発（ホットリロード）
+pnpm build        # tsc + Vite ビルド
+pnpm tauri build  # デスクトップアプリパッケージ
+pnpm test         # Vitest (jsdom)
+pnpm dlx shadcn@latest add <component>  # shadcn コンポーネント追加
 ```
-
----
 
 ## Directory Structure
 
 ```
-visual-thinkering/
-├── src/
-│   ├── main.tsx              # React entry point
-│   ├── App.tsx               # Root component — 4-panel resizable layout
-│   ├── store.ts              # Zustand state (nodes, edges, handlers)
-│   ├── types/
-│   │   └── index.ts          # TypeDB type definitions
-│   ├── components/
-│   │   ├── GraphCanvas.tsx   # React Flow canvas with context menu
-│   │   ├── Sidebar.tsx       # Node inspector panel
-│   │   └── ui/               # shadcn/ui components (button, card, etc.)
-│   ├── lib/
-│   │   ├── typeql.ts         # TypeQL code generation from graph
-│   │   └── utils.ts          # cn() utility (clsx + tailwind-merge)
-│   └── test/
-│       └── setup.ts          # Vitest setup (ResizeObserver mock for React Flow)
-└── src-tauri/
-    ├── src/
-    │   ├── main.rs           # Entry point → lib::run()
-    │   └── lib.rs            # Tauri builder + greet command
-    └── tauri.conf.json       # App config (window size, dev URL, bundle settings)
+src/
+├── main.tsx              # エントリーポイント
+├── App.tsx               # ルート：4パネルレイアウト
+├── store.ts              # Zustand（nodes, edges, narration）
+├── types/index.ts        # TypeDB 型定義
+├── components/
+│   ├── GraphCanvas.tsx   # React Flow キャンバス
+│   ├── Sidebar.tsx       # ノードインスペクター
+│   ├── NarrationPanel.tsx # ナラティブ入力
+│   ├── LLMAssistant.tsx  # LLM 命令インターフェース
+│   └── ui/               # shadcn/ui プリミティブ
+├── lib/
+│   ├── typeql.ts         # グラフ → TypeQL 変換
+│   └── utils.ts          # cn() ユーティリティ
+└── test/setup.ts         # ResizeObserver モック
+docs/
+├── ARCHITECTURE.md       # 設計決定の背景（→ 詳細はこちら）
+├── TESTING.md            # テスト戦略（→ 詳細はこちら）
+└── specs/                # 未実装機能のスペック（AIへの指示起点）
 ```
-
----
 
 ## Architecture
 
-### Layout (App.tsx)
+### Layout (App.tsx) — 4パネル構成
 
-The root component renders a 4-panel resizable layout:
+| Panel  | Size | Component                              |
+| ------ | ---- | -------------------------------------- |
+| Left   | 20%  | NarrationPanel                         |
+| Center | 60%  | GraphCanvas (75%) + LLMAssistant (25%) |
+| Right  | 20%  | Sidebar                                |
 
-| Panel  | Size | Content                                 |
-| ------ | ---- | --------------------------------------- |
-| Left   | 20%  | User Narration (narrative text input)   |
-| Center | 60%  | GraphCanvas (75%) + LLM Assistant (25%) |
-| Right  | 20%  | Sidebar / Node Inspector                |
+### State (store.ts)
 
-### State Management (store.ts)
-
-Zustand is the single source of truth for graph state. Subscribe to state selectors individually to avoid infinite re-renders with React Flow — see comment `無限ループ防止のため個別に state を取得` in App.tsx.
+**必ず個別セレクターで購読すること（無限ループ防止）:**
 
 ```typescript
-// Good — subscribe to individual selectors
-const nodes = useGraphStore((s) => s.nodes);
-const edges = useGraphStore((s) => s.edges);
+// ✅ Good
+const nodes = useStore((s) => s.nodes);
 
-// Bad — subscribing to whole store causes infinite re-renders
-const store = useGraphStore();
+// ❌ Bad — React Flow と組み合わせると無限再レンダー
+const store = useStore();
 ```
 
-Store API:
+Store API: `nodes`, `edges`, `narration`, `onNodesChange`, `onEdgesChange`, `onConnect`, `setNodes`, `setNarration`, `deleteNode`
 
-- `nodes`, `edges` — current graph state
-- `onNodesChange`, `onEdgesChange` — React Flow change handlers
-- `onConnect` — new edge creation handler
-- `setNodes` — batch node update
-- `deleteNode(nodeId)` — remove node and all connected edges
+### Type System
 
-### Type System (types/index.ts)
+```typescript
+type TypeDBMetaType = "entity" | "relation" | "attribute";
 
-TypeDB-specific types:
+interface TypeDBNodeData {
+  label: string;
+  typeDBType: TypeDBMetaType;
+  isAbstract?: boolean;
+  [key: string]: unknown; // React Flow の Record<string, unknown> 要件
+}
 
-- `TypeDBMetaType` — `"entity" | "relation" | "attribute"`
-- `TypeDBNodeData` — `{ label, typeDBType, isAbstract }`
-- `TypeDBEdgeData` — `{ role, isKey }`
-
-### TypeQL Generation (lib/typeql.ts)
-
-`generateTypeQL(nodes, edges)` converts the graph to a valid TypeQL schema definition string.
-
----
-
-## Key Patterns and Conventions
-
-- **Path alias**: `@/` maps to `./src/` — use this for all imports
-- **UI components**: Add new UI primitives to `src/components/ui/` following shadcn conventions
-- **shadcn/ui**: Style: `radix-nova`, icons: `lucide`, base color: `neutral`
-- **Comments**: Japanese comments are expected throughout the codebase
-- **Rust backend**: Minimal — only the `greet` command. Keep Rust changes minimal; logic lives in the React frontend
-- **CSP**: Disabled in Tauri config (`"security": { "csp": null }`) — intentional for dev flexibility
-
----
-
-## Testing
-
-Tests use Vitest with jsdom. React Flow requires a `ResizeObserver` mock, which is set up in `src/test/setup.ts`.
-
-```bash
-pnpm test
+interface TypeDBEdgeData {
+  role: string;
+  isKey?: boolean;
+  [key: string]: unknown;
+}
 ```
 
-Test files live alongside source files (e.g., `App.test.tsx`).
+## Conventions
 
----
+- **Path alias**: `@/` → `./src/`（すべての import で使用）
+- **Comments**: コード内コメントは日本語で実装意図を記述
+- **shadcn/ui**: style=`radix-nova`, icons=`lucide`, color=`neutral`
+- **Rust**: 変更最小限。ロジックは React フロントエンドに置く
+- **CSP**: `null`（開発柔軟性のため意図的に無効化）
 
-## Adding shadcn Components
+## Testing Policy
 
-```bash
-pnpm dlx shadcn@latest add <component-name>
-```
+詳細: [`docs/TESTING.md`](docs/TESTING.md)
 
-Components are added to `src/components/ui/`.
+- **新機能**: failed test → 実装（Red → Green）
+- **バグ修正**: 再現テスト（failed）を先に書いてから修正
+- **リファクタリング**: 先にテストで振る舞いを固める
+- **テストファイル**: ソースと同階層に配置（例: `App.test.tsx`）
+
+## Specs
+
+未実装機能のスペックは [`docs/specs/`](docs/specs/) に置く。  
+スペックを読んで「failed test を書き、それを通す実装を書く」フローで開発する。
