@@ -8,7 +8,7 @@ export function EntityNode({ data, selected }: NodeProps<FlowNode<TypeDBNodeData
             data-selected={selected ? 'true' : undefined}
             className={[
                 // ベーススタイル: 角丸矩形
-                'min-w-[120px] min-h-[48px] px-4 py-2',
+                'min-w-30 min-h-12 px-4 py-2',
                 'flex items-center justify-center',
                 'rounded-lg border-2 bg-blue-50',
                 'text-sm font-medium text-blue-900',

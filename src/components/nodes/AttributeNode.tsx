@@ -8,7 +8,7 @@ export function AttributeNode({ data, selected }: NodeProps<FlowNode<TypeDBNodeD
             data-selected={selected ? 'true' : undefined}
             className={[
                 // ベーススタイル: 楕円（border-radius を最大値にすることで楕円になる）
-                'min-w-[100px] min-h-[48px] px-5 py-2',
+                'min-w-25 min-h-12 px-5 py-2',
                 'flex items-center justify-center',
                 'rounded-full border-2 bg-orange-50',
                 'text-sm font-medium text-orange-900',
