@@ -34,8 +34,8 @@ export const useStore = create<GraphState>((set, get) => ({
         {
             id: crypto.randomUUID(),
             data: { label: 'Entity', typeDBType: 'entity', isAbstract: false },
-            position: { x: 250, y: 150 },
-            // typeDBType を React Flow の type に使うことで Custom Node が描画される
+            // position は fitView が自動調整するため (0,0) で問題ない
+            position: { x: 0, y: 0 },
             type: 'entity',
         },
     ],
@@ -81,6 +81,7 @@ export const useStore = create<GraphState>((set, get) => ({
             type,
         };
         set({ nodes: [...get().nodes, newNode] });
+        // 追加したノードの id を返すことで呼び出し元が即座に選択状態にできる
         return newNode.id;
     },
 
