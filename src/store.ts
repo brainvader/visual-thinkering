@@ -7,6 +7,7 @@ import {
     EdgeChange,
     Node,
     NodeChange,
+    MarkerType,
     addEdge,
     OnNodesChange,
     OnEdgesChange,
@@ -55,7 +56,20 @@ export const useStore = create<GraphState>()(
             },
 
             onConnect: (connection: Connection) => {
-                set({ edges: addEdge(connection, get().edges) });
+                set({
+                    edges: addEdge(
+                        {
+                            ...connection,
+                            // 接続方向が分かるよう矢印マーカーを付与する
+                            markerEnd: {
+                                type: MarkerType.ArrowClosed,
+                                width: 20,
+                                height: 20,
+                            },
+                        },
+                        get().edges
+                    ),
+                });
             },
 
             setNodes: (nodes: Node<TypeDBNodeData>[]) => set({ nodes }),
