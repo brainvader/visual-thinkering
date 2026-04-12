@@ -16,16 +16,16 @@ import {
     ContextMenu,
     ContextMenuContent,
     ContextMenuItem,
-    ContextMenuTrigger
+    ContextMenuTrigger,
 } from "@/components/ui/context-menu";
-import { Trash2, PlusCircle, ExternalLink } from "lucide-react";
+import { Trash2, ExternalLink, Box, Diamond, CircleDot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface GraphCanvasProps {
     nodes: Node[];
     edges: Edge[];
-    onNodesChange: OnNodesChange<Node>; // <Node> を明示
-    onEdgesChange: OnEdgesChange<Edge>; // <Edge> を明示
+    onNodesChange: OnNodesChange<Node>;
+    onEdgesChange: OnEdgesChange<Edge>;
     onConnect: OnConnect;
     onNodeClick: (event: React.MouseEvent, node: Node) => void;
     onPaneClick: () => void;
@@ -60,15 +60,31 @@ export function GraphCanvas({
                     </ReactFlowProvider>
                 </ContextMenuTrigger>
 
-                <ContextMenuContent className="w-56">
+                {/* コンテクストメニューのカスタマイズ */}
+                <ContextMenuContent className="w-64 p-2">
                     {selectedNode ? (
-                        <ContextMenuItem className="gap-2 text-red-500" onClick={deleteNode}>
-                            <Trash2 size={14} /> Delete Node
-                        </ContextMenuItem>
+                        <>
+                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-muted-foreground">Node Actions</div>
+                            <ContextMenuItem className="gap-2 text-red-500 focus:text-red-500" onClick={deleteNode}>
+                                <Trash2 size={14} /> Delete Node
+                            </ContextMenuItem>
+                        </>
                     ) : (
-                        <ContextMenuItem className="gap-2">
-                            <PlusCircle size={14} /> Add New Entity
-                        </ContextMenuItem>
+                        <>
+                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-muted-foreground mb-1">Quick Add</div>
+                            {/* アイコン付きボタンのグリッド配置 */}
+                            <div className="grid grid-cols-3 gap-1 mb-2">
+                                <Button variant="outline" size="icon" className="h-12 w-full flex-col gap-1 text-[10px]" title="Entity">
+                                    <Box size={16} className="text-blue-600" />
+                                </Button>
+                                <Button variant="outline" size="icon" className="h-12 w-full flex-col gap-1 text-[10px]" title="Relation">
+                                    <Diamond size={16} className="text-emerald-600" />
+                                </Button>
+                                <Button variant="outline" size="icon" className="h-12 w-full flex-col gap-1 text-[10px]" title="Attribute">
+                                    <CircleDot size={16} className="text-amber-600" />
+                                </Button>
+                            </div>
+                        </>
                     )}
                 </ContextMenuContent>
             </ContextMenu>
