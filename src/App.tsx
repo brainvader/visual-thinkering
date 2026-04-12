@@ -1,4 +1,3 @@
-import { LLMAssistant } from './components/LLMAssistant';
 import React, { useCallback } from 'react';
 import { Node } from '@xyflow/react';
 import { TypeDBNodeData } from '@/types';
@@ -12,6 +11,8 @@ import {
 import { useStore } from './store';
 import { GraphCanvas } from './components/GraphCanvas';
 import { Sidebar } from './components/Sidebar';
+import { LLMAssistant } from './components/LLMAssistant';
+import { NarrationPanel } from './components/NarrationPanel';
 
 export default function App() {
   // 無限ループ防止のため個別に state を取得
@@ -47,18 +48,7 @@ export default function App() {
 
           {/* --- 左パネル: ユーザーの語り (Narration) --- */}
           <ResizablePanel defaultSize={20} minSize={15}>
-            <div className="flex h-full flex-col border-r bg-muted/20">
-              <div className="p-3 border-b bg-background/50 text-xs font-bold uppercase tracking-wider text-muted-foreground">
-                User Narration
-              </div>
-              <div className="flex-1 p-4 overflow-y-auto prose prose-sm dark:prose-invert">
-                {/* ここにユーザーのテキストデータを流し込みます */}
-                <p className="text-sm leading-relaxed text-foreground/80">
-                  ここにユーザーの語り（ナラティブ）が表示されます。
-                  ストーリーの断片や、抽出されたテキストがここに並びます。
-                </p>
-              </div>
-            </div>
+            <NarrationPanel />
           </ResizablePanel>
 
           <ResizableHandle withHandle />

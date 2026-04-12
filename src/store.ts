@@ -24,6 +24,8 @@ interface GraphState {
     onConnect: OnConnect;
     setNodes: (nodes: Node<TypeDBNodeData>[]) => void;
     deleteNode: (nodeId: string) => void;
+    narration: string;                        // ユーザーの語りテキスト
+    setNarration: (text: string) => void;     // テキスト更新ハンドラ
 }
 
 export const useStore = create<GraphState>((set, get) => ({
@@ -53,4 +55,6 @@ export const useStore = create<GraphState>((set, get) => ({
             edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
         });
     },
+    narration: '',
+    setNarration: (text: string) => set({ narration: text }),
 }));
