@@ -100,6 +100,7 @@ export default function App() {
                     onNodeClick={onNodeClick}
                     onEdgeClick={onEdgeClick}
                     onPaneClick={onPaneClick}
+                    selectedNode={selectedNode}
                     deleteNode={handleDeleteNode}
                     deleteEdge={handleDeleteEdge}
                     addNode={addNode}
