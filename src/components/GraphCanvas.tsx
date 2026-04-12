@@ -15,6 +15,7 @@ import {
     Node,
     Edge,
     useReactFlow,
+    useViewport,
 } from '@xyflow/react';
 import { Trash2, ExternalLink, Box, Diamond, CircleDot, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -22,6 +23,7 @@ import { Button } from '@/components/ui/button';
 // コンポーネント内で定義すると再レンダリングのたびに再生成され React Flow が無視する
 import { nodeTypes } from './nodes';
 import { isValidTypeDBConnection } from '@/lib/connectionRules';
+import { useOwnershipBounds } from '@/hooks/useOwnershipBounds';
 
 interface GraphCanvasProps {
     nodes: Node<TypeDBNodeData>[];
@@ -32,6 +34,7 @@ interface GraphCanvasProps {
     onNodeClick: (event: React.MouseEvent, node: Node<TypeDBNodeData>) => void;
     onEdgeClick?: (event: React.MouseEvent, edge: Edge<TypeDBEdgeData>) => void;
     onPaneClick: () => void;
+    selectedNode: Node<TypeDBNodeData> | null;
     deleteNode: (id: string) => void;
     deleteEdge?: (id: string) => void;
     addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
@@ -58,13 +61,20 @@ function GraphCanvasInner({
     onNodeClick,
     onEdgeClick,
     onPaneClick,
+    selectedNode,
     deleteNode,
     deleteEdge,
     addNode,
     onNodeAdded,
 }: GraphCanvasProps) {
     const { screenToFlowPosition } = useReactFlow();
+    // useViewport でリアクティブに viewport を取得する
+    // getViewport() と違い、ズーム・パン・ノード移動時に再レンダリングされる
+    const viewport = useViewport();
     const menuRef = useRef<HTMLDivElement>(null);
+
+    // owns 関係のバウンディングボックス（フロー座標系）
+    const ownershipBounds = useOwnershipBounds(selectedNode, nodes, edges);
 
     // カスタムコンテキストメニューの状態
     const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
@@ -203,6 +213,30 @@ function GraphCanvasInner({
                 {showMiniMap && (
                     <MiniMap style={{ backgroundColor: '#fff' }} nodeColor="#e2e2e7" />
                 )}
+                {/* owns 関係のハイライト矩形
+                    フロー座標系で描画するため ReactFlow の子に配置する
+                    pointerEvents: none でクリックを透過させる */}
+                {ownershipBounds && (() => {
+                    const x = ownershipBounds.x * viewport.zoom + viewport.x;
+                    const y = ownershipBounds.y * viewport.zoom + viewport.y;
+                    const w = ownershipBounds.width * viewport.zoom;
+                    const h = ownershipBounds.height * viewport.zoom;
+                    return (
+                        <div
+                            style={{
+                                position: 'absolute',
+                                left: x,
+                                top: y,
+                                width: w,
+                                height: h,
+                                borderRadius: 12,
+                                background: 'rgba(59, 130, 246, 0.06)',
+                                pointerEvents: 'none',
+                                zIndex: 0,
+                            }}
+                        />
+                    );
+                })()}
             </ReactFlow>
 
             {/* カスタムコンテキストメニュー */}
