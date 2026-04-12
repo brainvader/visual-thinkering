@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/context-menu';
 import { Trash2, ExternalLink, Box, Diamond, CircleDot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import { nodeTypes } from './nodes';
 
 interface GraphCanvasProps {
     nodes: Node<TypeDBNodeData>[];
@@ -95,6 +96,7 @@ function GraphCanvasInner({
                         onConnect={onConnect}
                         onNodeClick={onNodeClick}
                         onPaneClick={onPaneClick}
+                        nodeTypes={nodeTypes}
                         fitView
                     >
                         <Background variant={BackgroundVariant.Dots} color="#e2e2e7" gap={20} />
