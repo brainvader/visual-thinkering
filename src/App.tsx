@@ -1,4 +1,6 @@
 import React, { useCallback } from 'react';
+import { Node } from '@xyflow/react';
+import { TypeDBNodeData } from '@/types';
 import '@xyflow/react/dist/style.css';
 import {
   ResizableHandle,
@@ -19,9 +21,9 @@ export default function App() {
   const onConnect = useStore((state) => state.onConnect);
   const deleteNode = useStore((state) => state.deleteNode);
 
-  const [selectedNode, setSelectedNode] = React.useState<any>(null);
+  const [selectedNode, setSelectedNode] = React.useState<Node<TypeDBNodeData> | null>(null);
 
-  const onNodeClick = useCallback((_event: any, node: any) => {
+  const onNodeClick = useCallback((_event: React.MouseEvent, node: Node<TypeDBNodeData>) => {
     setSelectedNode(node);
   }, []);
 

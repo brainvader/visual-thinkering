@@ -1,4 +1,5 @@
 import React from 'react';
+import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 import {
     ReactFlow,
     Background,
@@ -22,15 +23,15 @@ import { Trash2, ExternalLink, Box, Diamond, CircleDot } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 interface GraphCanvasProps {
-    nodes: Node[];
-    edges: Edge[];
-    onNodesChange: OnNodesChange<Node>;
-    onEdgesChange: OnEdgesChange<Edge>;
+    nodes: Node<TypeDBNodeData>[];
+    edges: Edge<TypeDBEdgeData>[];
+    onNodesChange: OnNodesChange<Node<TypeDBNodeData>>;
+    onEdgesChange: OnEdgesChange<Edge<TypeDBEdgeData>>;
     onConnect: OnConnect;
-    onNodeClick: (event: React.MouseEvent, node: Node) => void;
+    onNodeClick: (event: React.MouseEvent, node: Node<TypeDBNodeData>) => void;
     onPaneClick: () => void;
-    selectedNode: Node | null;
-    deleteNode: (id: string) => void; // 引数を受け取る型に修正
+    selectedNode: Node<TypeDBNodeData> | null;
+    deleteNode: (id: string) => void;
 }
 
 export function GraphCanvas({
