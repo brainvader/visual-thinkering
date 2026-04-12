@@ -25,31 +25,32 @@ export function calculateOwnershipBounds(
     nodes: FlowNode<TypeDBNodeData>[],
     edges: FlowEdge<TypeDBEdgeData>[]
 ): BoundingBox | null {
-    // 未選択・Attribute 自身が選択された場合は表示しない
     if (!selectedNode) return null;
     if (selectedNode.data.typeDBType === 'attribute') return null;
 
+    // nodes 配列から id で引き直すことで常に最新の position/measured を使う
+    const currentSelectedNode = nodes.find((n) => n.id === selectedNode.id);
+    if (!currentSelectedNode) return null;
+
     // 選択ノードから出る owns エッジ（target が attribute）を抽出
     const ownedAttributeIds = edges
-        .filter((e) => e.source === selectedNode.id)
+        .filter((e) => e.source === currentSelectedNode.id)
         .map((e) => e.target)
         .filter((targetId) => {
             const targetNode = nodes.find((n) => n.id === targetId);
             return targetNode?.data.typeDBType === 'attribute';
         });
 
-    // owns エッジがなければ表示しない
     if (ownedAttributeIds.length === 0) return null;
 
-    // 対象ノード = 選択ノード + 関連 Attribute ノード
+    // 対象ノード = 選択ノード（最新）+ 関連 Attribute ノード
     const targetNodes = [
-        selectedNode,
+        currentSelectedNode,
         ...ownedAttributeIds
             .map((id) => nodes.find((n) => n.id === id))
             .filter((n): n is FlowNode<TypeDBNodeData> => n !== undefined),
     ];
 
-    // バウンディングボックスを計算
     let minX = Infinity;
     let minY = Infinity;
     let maxX = -Infinity;
@@ -85,10 +86,15 @@ export function useOwnershipBounds(
 ): BoundingBox | null {
     return useMemo(
         () => calculateOwnershipBounds(selectedNode, nodes, edges),
+        // selectedNode の position/measured も含めて監視する
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [
             selectedNode?.id,
-            // ノードの position と measured が変わったときに再計算
+            selectedNode?.position.x,
+            selectedNode?.position.y,
+            selectedNode?.measured?.width,
+            selectedNode?.measured?.height,
+            // 関連ノードの position と measured が変わったときに再計算
             JSON.stringify(nodes.map((n) => ({ id: n.id, pos: n.position, m: n.measured }))),
             // エッジ構成が変わったときに再計算
             JSON.stringify(edges.map((e) => ({ s: e.source, t: e.target }))),
