@@ -6,6 +6,7 @@ import {
     Background,
     Controls,
     MiniMap,
+    Panel,
     BackgroundVariant,
     ReactFlowProvider,
     OnNodesChange,
@@ -161,6 +162,9 @@ function GraphCanvasInner({
         setContextMenu(null);
     }, []);
 
+    // ミニマップの表示/非表示（デフォルト非表示）
+    const [showMiniMap, setShowMiniMap] = useState(false);
+
     return (
         <div className="relative h-full w-full bg-white">
             <ReactFlow
@@ -187,7 +191,18 @@ function GraphCanvasInner({
             >
                 <Background variant={BackgroundVariant.Dots} color="#e2e2e7" gap={20} />
                 <Controls />
-                <MiniMap style={{ backgroundColor: '#fff' }} nodeColor="#e2e2e7" />
+                {/* ミニマップのトグルボタン（右上） */}
+                <Panel position="top-right">
+                    <button
+                        className="px-2 py-1 text-[10px] font-medium rounded border bg-white/80 backdrop-blur shadow-sm hover:bg-muted transition-colors"
+                        onClick={() => setShowMiniMap((v) => !v)}
+                    >
+                        {showMiniMap ? 'Hide Map' : 'Show Map'}
+                    </button>
+                </Panel>
+                {showMiniMap && (
+                    <MiniMap style={{ backgroundColor: '#fff' }} nodeColor="#e2e2e7" />
+                )}
             </ReactFlow>
 
             {/* カスタムコンテキストメニュー */}
