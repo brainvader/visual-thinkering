@@ -24,6 +24,8 @@ import {
 } from '@/components/ui/context-menu';
 import { Trash2, ExternalLink, Box, Diamond, CircleDot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+// nodeTypes はモジュールレベルの定数を import する
+// コンポーネント内で定義すると再レンダリングのたびに再生成され React Flow が無視する
 import { nodeTypes } from './nodes';
 
 interface GraphCanvasProps {
@@ -36,12 +38,11 @@ interface GraphCanvasProps {
     onPaneClick: () => void;
     selectedNode: Node<TypeDBNodeData> | null;
     deleteNode: (id: string) => void;
-    addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => void;
-    onNodeAdded?: (node: Node<TypeDBNodeData>) => void;
+    addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
+    onNodeAdded?: (nodeId: string) => void;
 }
 
-// useReactFlow は ReactFlowProvider の内側でしか使えないため、
-// 内部コンポーネントとして分離する
+// useReactFlow は ReactFlowProvider の内側でしか使えないため内部コンポーネントとして分離
 function GraphCanvasInner({
     nodes,
     edges,
@@ -57,36 +58,44 @@ function GraphCanvasInner({
 }: GraphCanvasProps) {
     const { screenToFlowPosition } = useReactFlow();
 
-    // 右クリック時のスクリーン座標を一時保持（UIの一時状態のためローカル state で管理）
+    // 右クリック時のスクリーン座標を一時保持
     const [contextMenuScreenPos, setContextMenuScreenPos] = useState<{
         x: number;
         y: number;
     } | null>(null);
 
-    // 右クリック時にスクリーン座標を記録する
+    // ContextMenu を key で再マウントすることで強制的に閉じる
+    // Radix UI の ContextMenu は open props を受け付けないため、この方法で閉じる
+    const [menuKey, setMenuKey] = useState(0);
+
     const handleContextMenu = useCallback((e: React.MouseEvent) => {
         setContextMenuScreenPos({ x: e.clientX, y: e.clientY });
     }, []);
 
-    // Quick Add: 右クリック座標をフロー座標に変換してノードを追加
+    // Quick Add: 座標変換 → ノード追加 → メニューを閉じる → 追加ノードを即選択
     const handleAddNode = useCallback(
         (type: TypeDBMetaType) => {
-            // 座標が未記録の場合はキャンバス中央にフォールバック
-            const screenPos = contextMenuScreenPos ?? { x: window.innerWidth / 2, y: window.innerHeight / 2 };
+            const screenPos = contextMenuScreenPos ?? {
+                x: window.innerWidth / 2,
+                y: window.innerHeight / 2,
+            };
             const flowPos = screenToFlowPosition(screenPos);
-            addNode(type, flowPos);
 
-            // 追加後すぐに選択状態にするため、追加されたノードを通知
-            // （store 側で nodes の末尾に追加されるため、呼び出し元で取得）
-            onNodeAdded?.(nodes[nodes.length - 1]);
+            // addNode が新ノードの id を返すのでタイミング問題なく即選択できる
+            const newNodeId = addNode(type, flowPos);
+
+            // key を更新して ContextMenu を再マウント → 閉じる
+            setMenuKey((k) => k + 1);
+
+            // 追加したノードを即フォーカス
+            onNodeAdded?.(newNodeId);
         },
-        [contextMenuScreenPos, screenToFlowPosition, addNode, onNodeAdded, nodes]
+        [contextMenuScreenPos, screenToFlowPosition, addNode, onNodeAdded]
     );
 
     return (
         <div className="relative h-full w-full bg-white" onContextMenu={handleContextMenu}>
-            <ContextMenu>
-                {/* block クラスを追加して領域を確保 */}
+            <ContextMenu key={menuKey}>
                 <ContextMenuTrigger className="block h-full w-full">
                     <ReactFlow
                         nodes={nodes}
@@ -108,7 +117,6 @@ function GraphCanvasInner({
                 <ContextMenuContent className="w-64 p-2">
                     {selectedNode ? (
                         <>
-                            {/* ノード選択中: ノードアクション */}
                             <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-muted-foreground">
                                 Node Actions
                             </div>
@@ -121,7 +129,6 @@ function GraphCanvasInner({
                         </>
                     ) : (
                         <>
-                            {/* ノード未選択: Quick Add */}
                             <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-muted-foreground mb-1">
                                 Quick Add
                             </div>
@@ -162,7 +169,6 @@ function GraphCanvasInner({
 
                     <ContextMenuSeparator />
 
-                    {/* VS Code 連携（将来実装） */}
                     <ContextMenuItem className="gap-2 text-muted-foreground" disabled>
                         <ExternalLink size={14} /> Open in VS Code
                     </ContextMenuItem>

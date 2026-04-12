@@ -38,11 +38,11 @@ export default function App() {
     setSelectedNode(null);
   }, []);
 
-  // ノード追加直後に選択状態にする（Sidebar にすぐ反映）
-  const onNodeAdded = useCallback(() => {
-    // addNode は store の末尾に追加するため、最新の nodes から取得
-    const latest = useStore.getState().nodes.at(-1) ?? null;
-    setSelectedNode(latest);
+  // ノード追加直後に選択状態にする
+  // addNode が新ノードの id を返すので store から再取得する必要がない
+  const onNodeAdded = useCallback((nodeId: string) => {
+    const node = useStore.getState().nodes.find((n) => n.id === nodeId) ?? null;
+    setSelectedNode(node);
   }, []);
 
   // LLM への命令送信（将来 narration + instruction を API に渡す）
