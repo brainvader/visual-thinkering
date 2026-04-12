@@ -3,27 +3,29 @@
 > ステータス: **Draft**  
 > 依存スペック: `edge-role-editing.md`（ロール名が設定できる状態が前提）  
 > 対象ブランチ: `feat/connection-rules`（予定）  
-> 関連ファイル: `src/store.ts`, `src/components/GraphCanvas.tsx`, `src/lib/connectionRules.ts`
+> 関連ファイル: `src/lib/connectionRules.ts`, `src/components/GraphCanvas.tsx`
 
 ---
 
 ## 概要
 
-TypeDB のスキーマルールに基づき、意味のない接続を防ぐ。グラフキャンバス上で接続しようとしたとき、無効な組み合わせはエッジが作られない（またはエラーを表示する）。
+TypeDB のスキーマルールに基づき、意味のない接続を防ぐ。グラフキャンバス上で接続しようとしたとき、無効な組み合わせはエッジが作られない。
 
 ---
 
 ## TypeDB の接続ルール
 
-| 接続元    | 接続先              | 許可 | 意味                                       |
-| --------- | ------------------- | ---- | ------------------------------------------ |
-| Entity    | Relation            | ✅   | Entity が Relation のロールを担う（plays） |
-| Relation  | Relation            | ✅   | ネストした Relation（TypeDB で合法）       |
-| Entity    | Entity              | ❌   | 直接接続は意味を持たない                   |
-| Attribute | Entity              | ✅   | Entity が Attribute を所有する（owns）     |
-| Attribute | Relation            | ✅   | Relation が Attribute を所有する（owns）   |
-| Attribute | Attribute           | ❌   | Attribute 同士の接続は不正                 |
-| Any       | Attribute（target） | ✅   | Attribute は所有される側になれる           |
+| 接続元    | 接続先    | 許可 | TypeDB での意味                            |
+| --------- | --------- | ---- | ------------------------------------------ |
+| Entity    | Relation  | ✅   | Entity が Relation のロールを担う（plays） |
+| Entity    | Attribute | ✅   | Entity が Attribute を所有する（owns）     |
+| Relation  | Relation  | ✅   | ネストした Relation（TypeDB で合法）       |
+| Relation  | Attribute | ✅   | Relation が Attribute を所有する（owns）   |
+| Entity    | Entity    | ❌   | 直接接続は意味を持たない                   |
+| Attribute | \*        | ❌   | Attribute は接続元になれない               |
+| \*        | \* (self) | ❌   | 自己ループは禁止                           |
+
+**ポイント:** `owns` の方向は「所有者 → Attribute」。Attribute は常に接続先（target）になる。
 
 ---
 
@@ -33,10 +35,6 @@ React Flow の `isValidConnection` prop を使う。接続試行時に呼ばれ�
 
 ```typescript
 // src/lib/connectionRules.ts
-import { Connection } from "@xyflow/react";
-import { Node } from "@xyflow/react";
-import { TypeDBNodeData } from "@/types";
-
 export function isValidTypeDBConnection(
   connection: Connection,
   nodes: Node<TypeDBNodeData>[],
@@ -52,20 +50,18 @@ export function isValidTypeDBConnection(
   // 自己ループは禁止
   if (connection.source === connection.target) return false;
 
-  // 禁止パターン
+  // Attribute は接続元になれない
+  if (sourceType === "attribute") return false;
+
+  // Entity → Entity は禁止
   if (sourceType === "entity" && targetType === "entity") return false;
-  if (sourceType === "attribute" && targetType === "attribute") return false;
-  if (sourceType === "attribute" && targetType === "relation") return false;
-  if (sourceType === "attribute" && targetType === "entity") return false;
 
   return true;
 }
 ```
 
 ```typescript
-// GraphCanvas.tsx
-import { isValidTypeDBConnection } from '@/lib/connectionRules';
-
+// GraphCanvas.tsx への追加
 <ReactFlow
     isValidConnection={(connection) =>
         isValidTypeDBConnection(connection, nodes)
@@ -78,14 +74,14 @@ import { isValidTypeDBConnection } from '@/lib/connectionRules';
 
 ## ユーザーへのフィードバック
 
-無効な接続を試みたとき、React Flow はデフォルトでドロップを無視するだけで何も表示しない。より分かりやすくするため、無効時にツールチップかトーストでエラーを表示することを検討する（本スペックでは任意実装とする）。
+無効な接続を試みたとき、React Flow はデフォルトでドロップを無視するだけで何も表示しない。より分かりやすくするため、将来的にトーストでエラーを表示することを検討する（本スペックでは任意実装とする）。
 
 ---
 
 ## 考慮事項
 
 - **Abstract の扱い**: `isAbstract: true` のノードへの接続は現時点では制限しない（将来の拡張候補）
-- **既存エッジの検証**: ルール追加後も既存の不正エッジはそのまま残る。将来的にバリデーション表示を追加する
+- **既存エッジの検証**: ルール追加後も既存の不正エッジはそのまま残る
 
 ---
 
@@ -96,12 +92,18 @@ import { isValidTypeDBConnection } from '@/lib/connectionRules';
 純粋関数なのでモック不要。
 
 ```
-- Entity → Relation の接続が許可されること
-- Entity → Entity の接続が拒否されること
-- Attribute → Attribute の接続が拒否されること
-- Attribute → Entity の接続が拒否されること（ownershipの方向は逆）
-- Entity → Attribute の接続が許可されること
-- Relation → Relation の接続が許可されること
+許可されるケース:
+- Entity → Relation が許可されること（plays）
+- Entity → Attribute が許可されること（owns）
+- Relation → Relation が許可されること（nested relation）
+- Relation → Attribute が許可されること（owns）
+
+拒否されるケース:
+- Entity → Entity が拒否されること
+- Attribute → Entity が拒否されること
+- Attribute → Relation が拒否されること
+- Attribute → Attribute が拒否されること
 - 自己ループが拒否されること
-- ノードが見つからない場合は拒否されること
+- source ノードが見つからない場合が拒否されること
+- target ノードが見つからない場合が拒否されること
 ```
