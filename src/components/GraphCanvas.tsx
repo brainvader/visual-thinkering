@@ -15,6 +15,7 @@ import {
     Node,
     Edge,
     useReactFlow,
+    useViewport,
 } from '@xyflow/react';
 import { Trash2, ExternalLink, Box, Diamond, CircleDot, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -66,7 +67,10 @@ function GraphCanvasInner({
     addNode,
     onNodeAdded,
 }: GraphCanvasProps) {
-    const { screenToFlowPosition, getViewport } = useReactFlow();
+    const { screenToFlowPosition } = useReactFlow();
+    // useViewport でリアクティブに viewport を取得する
+    // getViewport() と違い、ズーム・パン・ノード移動時に再レンダリングされる
+    const viewport = useViewport();
     const menuRef = useRef<HTMLDivElement>(null);
 
     // owns 関係のバウンディングボックス（フロー座標系）
@@ -213,11 +217,10 @@ function GraphCanvasInner({
                     フロー座標系で描画するため ReactFlow の子に配置する
                     pointerEvents: none でクリックを透過させる */}
                 {ownershipBounds && (() => {
-                    const vp = getViewport();
-                    const x = ownershipBounds.x * vp.zoom + vp.x;
-                    const y = ownershipBounds.y * vp.zoom + vp.y;
-                    const w = ownershipBounds.width * vp.zoom;
-                    const h = ownershipBounds.height * vp.zoom;
+                    const x = ownershipBounds.x * viewport.zoom + viewport.x;
+                    const y = ownershipBounds.y * viewport.zoom + viewport.y;
+                    const w = ownershipBounds.width * viewport.zoom;
+                    const h = ownershipBounds.height * viewport.zoom;
                     return (
                         <div
                             style={{
