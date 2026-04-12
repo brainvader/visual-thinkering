@@ -1,21 +1,35 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach } from 'vitest';
+import { useStore } from './store';
 
-// 将来的にロジックファイルへ切り出す想定の関数
-const deleteNodeLogic = (nodes: any[], idToDelete: string) => {
-    return nodes.filter((n) => n.id !== idToDelete);
-};
+describe('Graph Store Logic', () => {
+    // 各テストの前にストアをリセット（必要に応じて）
+    beforeEach(() => {
+        const { setNodes } = useStore.getState();
+        setNodes([
+            { id: '1', data: { label: 'Node A' }, position: { x: 0, y: 0 } },
+            { id: '2', data: { label: 'Node B' }, position: { x: 0, y: 0 } },
+        ]);
+    });
 
-describe('Graph Logic Test', () => {
-    it('ノード削除の検証（わざと失敗させる）', () => {
-        const mockNodes = [
-            { id: '1', data: { label: 'Node A' } },
-            { id: '2', data: { label: 'Node B' } },
-        ];
+    it('指定したIDのノードが正しく削除されること', () => {
+        const { deleteNode } = useStore.getState();
 
-        const result = deleteNodeLogic(mockNodes, '1');
+        // ID '1' を削除
+        deleteNode('1');
 
-        // 本来は result.length は 1 ですが、
-        // テストが正しく動いている（失敗を検知できる）か確認するために 5 を期待させます
-        expect(result).toHaveLength(5);
+        const { nodes } = useStore.getState();
+
+        // 残りは1つのはず
+        expect(nodes).toHaveLength(1);
+        expect(nodes[0].id).toBe('2');
+    });
+
+    it('存在しないIDを指定してもエラーにならないこと', () => {
+        const { deleteNode } = useStore.getState();
+
+        deleteNode('999');
+
+        const { nodes } = useStore.getState();
+        expect(nodes).toHaveLength(2);
     });
 });
