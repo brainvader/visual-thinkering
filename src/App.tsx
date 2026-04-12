@@ -1,7 +1,7 @@
 // src/App.tsx
 import React, { useCallback } from 'react';
-import { Node } from '@xyflow/react';
-import { TypeDBNodeData } from '@/types';
+import { Node, Edge } from '@xyflow/react';
+import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 import '@xyflow/react/dist/style.css';
 import {
   ResizableHandle,
@@ -25,17 +25,28 @@ export default function App() {
   const deleteNode = useStore((s) => s.deleteNode);
   const addNode = useStore((s) => s.addNode);
   const updateNodeLabel = useStore((s) => s.updateNodeLabel);
+  const updateEdgeRole = useStore((s) => s.updateEdgeRole);
+  const deleteEdge = useStore((s) => s.deleteEdge);
   const narration = useStore((s) => s.narration);
 
-  // 選択中ノードはグラフ状態とは独立した UI の一時状態
+  // 選択状態はグラフ状態とは独立した UI の一時状態
+  // ノードとエッジは同時選択しない
   const [selectedNode, setSelectedNode] = React.useState<Node<TypeDBNodeData> | null>(null);
+  const [selectedEdge, setSelectedEdge] = React.useState<Edge<TypeDBEdgeData> | null>(null);
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node<TypeDBNodeData>) => {
     setSelectedNode(node);
+    setSelectedEdge(null); // エッジ選択を解除
+  }, []);
+
+  const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge<TypeDBEdgeData>) => {
+    setSelectedEdge(edge);
+    setSelectedNode(null); // ノード選択を解除
   }, []);
 
   const onPaneClick = useCallback(() => {
     setSelectedNode(null);
+    setSelectedEdge(null);
   }, []);
 
   // 削除後にインスペクターも閉じる
@@ -44,17 +55,21 @@ export default function App() {
     setSelectedNode(null);
   }, [deleteNode]);
 
+  const handleDeleteEdge = useCallback((edgeId: string) => {
+    deleteEdge(edgeId);
+    setSelectedEdge(null);
+  }, [deleteEdge]);
+
   // ノード追加直後に選択状態にする
-  // addNode が新ノードの id を返すので store から再取得する必要がない
   const onNodeAdded = useCallback((nodeId: string) => {
     const node = useStore.getState().nodes.find((n) => n.id === nodeId) ?? null;
     setSelectedNode(node);
+    setSelectedEdge(null);
   }, []);
 
-  // LLM への命令送信（将来 narration + instruction を API に渡す）
+  // LLM への命令送信
   const handleSendInstruction = useCallback(
     (instruction: string) => {
-      // TODO: LLM API に instruction + narration + nodes/edges を渡してグラフを更新
       console.log('[LLM] instruction:', instruction);
       console.log('[LLM] context (narration):', narration);
     },
@@ -66,14 +81,12 @@ export default function App() {
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup orientation="horizontal">
 
-          {/* --- 左パネル: ユーザーの語り (Narration) --- */}
           <ResizablePanel defaultSize={20} minSize={15}>
             <NarrationPanel />
           </ResizablePanel>
 
           <ResizableHandle withHandle />
 
-          {/* --- 中央パネル: グラフキャンバス + LLM アシスタント --- */}
           <ResizablePanel defaultSize={60}>
             <ResizablePanelGroup orientation="vertical">
               <ResizablePanel defaultSize={75}>
@@ -85,6 +98,7 @@ export default function App() {
                     onEdgesChange={onEdgesChange}
                     onConnect={onConnect}
                     onNodeClick={onNodeClick}
+                    onEdgeClick={onEdgeClick}
                     onPaneClick={onPaneClick}
                     selectedNode={selectedNode}
                     deleteNode={handleDeleteNode}
@@ -96,7 +110,6 @@ export default function App() {
 
               <ResizableHandle withHandle />
 
-              {/* --- 下部パネル: LLM インターフェース --- */}
               <ResizablePanel defaultSize={25} minSize={10}>
                 <LLMAssistant onSendInstruction={handleSendInstruction} />
               </ResizablePanel>
@@ -105,12 +118,14 @@ export default function App() {
 
           <ResizableHandle withHandle />
 
-          {/* --- 右パネル: インスペクター (Sidebar) --- */}
           <ResizablePanel defaultSize={20} minSize={15}>
             <Sidebar
               selectedNode={selectedNode}
+              selectedEdge={selectedEdge}
               deleteNode={handleDeleteNode}
+              deleteEdge={handleDeleteEdge}
               updateNodeLabel={updateNodeLabel}
+              updateEdgeRole={updateEdgeRole}
             />
           </ResizablePanel>
 

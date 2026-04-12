@@ -1,54 +1,84 @@
 // src/components/Sidebar.tsx
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { Node } from '@xyflow/react';
-import { TypeDBNodeData } from '@/types';
+import { Node, Edge } from '@xyflow/react';
+import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 interface SidebarProps {
     selectedNode: Node<TypeDBNodeData> | null;
+    selectedEdge: Edge<TypeDBEdgeData> | null;
     deleteNode: (id: string) => void;
+    deleteEdge: (id: string) => void;
     updateNodeLabel: (nodeId: string, label: string) => void;
+    updateEdgeRole: (edgeId: string, role: string) => void;
 }
 
-export const Sidebar = ({ selectedNode, deleteNode, updateNodeLabel }: SidebarProps) => {
-    // 確定前の編集中テキストはローカル state で管理（ストアを汚さない）
+export const Sidebar = ({
+    selectedNode,
+    selectedEdge,
+    deleteNode,
+    deleteEdge,
+    updateNodeLabel,
+    updateEdgeRole,
+}: SidebarProps) => {
+    // ノードラベル編集用ローカル state
     const [editingLabel, setEditingLabel] = useState('');
-    // キャンセル時に元の値に戻すための参照
     const originalLabelRef = useRef('');
 
-    // selectedNode が切り替わったら編集中テキストをリセット
+    // エッジロール名編集用ローカル state
+    const [editingRole, setEditingRole] = useState('');
+    const originalRoleRef = useRef('');
+
+    // selectedNode が切り替わったらラベル入力をリセット
     useEffect(() => {
         const label = selectedNode?.data.label ?? '';
         setEditingLabel(label);
         originalLabelRef.current = label;
     }, [selectedNode?.id]);
 
-    const handleConfirm = useCallback(() => {
+    // selectedEdge が切り替わったらロール名入力をリセット
+    useEffect(() => {
+        const role = selectedEdge?.data?.role ?? '';
+        setEditingRole(role);
+        originalRoleRef.current = role;
+    }, [selectedEdge?.id]);
+
+    // ラベル確定
+    const handleLabelConfirm = useCallback(() => {
         if (!selectedNode) return;
         const trimmed = editingLabel.trim();
-        // 空文字列は確定しない
         if (!trimmed) return;
-        // 元のラベルと同じなら無駄な更新をスキップ
         if (trimmed === originalLabelRef.current) return;
         updateNodeLabel(selectedNode.id, trimmed);
-        // 確定後に originalLabel を更新
         originalLabelRef.current = trimmed;
     }, [selectedNode, editingLabel, updateNodeLabel]);
 
-    const handleKeyDown = useCallback(
+    const handleLabelKeyDown = useCallback(
         (e: React.KeyboardEvent<HTMLInputElement>) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                handleConfirm();
-            }
-            if (e.key === 'Escape') {
-                // 編集をキャンセルして元のラベルに戻す
-                setEditingLabel(originalLabelRef.current);
-            }
+            if (e.key === 'Enter') { e.preventDefault(); handleLabelConfirm(); }
+            if (e.key === 'Escape') { setEditingLabel(originalLabelRef.current); }
         },
-        [handleConfirm]
+        [handleLabelConfirm]
+    );
+
+    // ロール名確定
+    const handleRoleConfirm = useCallback(() => {
+        if (!selectedEdge) return;
+        const trimmed = editingRole.trim();
+        if (!trimmed) return;
+        if (trimmed === originalRoleRef.current) return;
+        updateEdgeRole(selectedEdge.id, trimmed);
+        originalRoleRef.current = trimmed;
+    }, [selectedEdge, editingRole, updateEdgeRole]);
+
+    const handleRoleKeyDown = useCallback(
+        (e: React.KeyboardEvent<HTMLInputElement>) => {
+            if (e.key === 'Enter') { e.preventDefault(); handleRoleConfirm(); }
+            if (e.key === 'Escape') { setEditingRole(originalRoleRef.current); }
+        },
+        [handleRoleConfirm]
     );
 
     return (
@@ -56,13 +86,11 @@ export const Sidebar = ({ selectedNode, deleteNode, updateNodeLabel }: SidebarPr
             <h2 className="text-lg font-bold">Inspector</h2>
 
             {selectedNode ? (
+                /* ノードインスペクター */
                 <div className="flex flex-col gap-4">
-                    {/* ノード情報 */}
                     <p className="text-xs text-muted-foreground font-mono">
                         ID: {selectedNode.id}
                     </p>
-
-                    {/* ラベル編集フィールド */}
                     <div className="flex flex-col gap-1.5">
                         <Label htmlFor="node-label" className="text-xs font-medium">
                             Label
@@ -71,8 +99,7 @@ export const Sidebar = ({ selectedNode, deleteNode, updateNodeLabel }: SidebarPr
                             id="node-label"
                             value={editingLabel}
                             onChange={(e) => setEditingLabel(e.target.value)}
-                            onKeyDown={handleKeyDown}
-                            // onBlur では確定しない（Enter による明示的な確定のみ有効）
+                            onKeyDown={handleLabelKeyDown}
                             placeholder="ノード名を入力..."
                             className="h-8 text-sm"
                             aria-label="label"
@@ -81,16 +108,12 @@ export const Sidebar = ({ selectedNode, deleteNode, updateNodeLabel }: SidebarPr
                             Enter で確定 / Esc でキャンセル
                         </p>
                     </div>
-
-                    {/* TypeDB メタ型バッジ */}
                     <div className="flex flex-col gap-1.5">
                         <span className="text-xs font-medium text-muted-foreground">Type</span>
                         <span className="text-xs px-2 py-0.5 rounded-full bg-muted w-fit capitalize">
                             {selectedNode.data.typeDBType}
                         </span>
                     </div>
-
-                    {/* 削除ボタン */}
                     <Button
                         variant="destructive"
                         size="sm"
@@ -100,8 +123,40 @@ export const Sidebar = ({ selectedNode, deleteNode, updateNodeLabel }: SidebarPr
                         Delete Node
                     </Button>
                 </div>
+            ) : selectedEdge ? (
+                /* エッジインスペクター */
+                <div className="flex flex-col gap-4">
+                    <p className="text-xs text-muted-foreground font-mono">
+                        Edge ID: {selectedEdge.id}
+                    </p>
+                    <div className="flex flex-col gap-1.5">
+                        <Label htmlFor="edge-role" className="text-xs font-medium">
+                            Role
+                        </Label>
+                        <Input
+                            id="edge-role"
+                            value={editingRole}
+                            onChange={(e) => setEditingRole(e.target.value)}
+                            onKeyDown={handleRoleKeyDown}
+                            placeholder="ロール名を入力（例: employee）"
+                            className="h-8 text-sm"
+                            aria-label="role"
+                        />
+                        <p className="text-[10px] text-muted-foreground/70">
+                            Enter で確定 / Esc でキャンセル
+                        </p>
+                    </div>
+                    <Button
+                        variant="destructive"
+                        size="sm"
+                        className="w-full mt-auto"
+                        onClick={() => deleteEdge(selectedEdge.id)}
+                    >
+                        Delete Edge
+                    </Button>
+                </div>
             ) : (
-                <p className="text-sm text-muted-foreground">Select a node to edit</p>
+                <p className="text-sm text-muted-foreground">Select a node or edge to edit</p>
             )}
         </aside>
     );

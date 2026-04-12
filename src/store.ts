@@ -1,5 +1,6 @@
 // src/store.ts
 import { create } from 'zustand';
+import { persist, createJSONStorage } from 'zustand/middleware';
 import {
     Connection,
     Edge,
@@ -27,74 +28,98 @@ interface GraphState {
     addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
     updateNodeLabel: (nodeId: string, label: string) => void;
     setNarration: (text: string) => void;
+    updateEdgeRole: (edgeId: string, role: string) => void;
+    deleteEdge: (edgeId: string) => void;
 }
 
-export const useStore = create<GraphState>((set, get) => ({
-    nodes: [
-        {
-            id: crypto.randomUUID(),
-            data: { label: 'Entity', typeDBType: 'entity', isAbstract: false },
-            // position は fitView が自動調整するため (0,0) で問題ない
-            position: { x: 0, y: 0 },
-            type: 'entity',
-        },
-    ],
-    edges: [],
-    narration: '',
+export const useStore = create<GraphState>()(
+    persist(
+        (set, get) => ({
+            nodes: [
+                {
+                    id: crypto.randomUUID(),
+                    data: { label: 'Entity', typeDBType: 'entity', isAbstract: false },
+                    position: { x: 0, y: 0 },
+                    type: 'entity',
+                },
+            ],
+            edges: [],
+            narration: '',
 
-    onNodesChange: (changes: NodeChange<Node<TypeDBNodeData>>[]) => {
-        set({ nodes: applyNodeChanges(changes, get().nodes) });
-    },
-
-    onEdgesChange: (changes: EdgeChange<Edge<TypeDBEdgeData>>[]) => {
-        set({ edges: applyEdgeChanges(changes, get().edges) });
-    },
-
-    onConnect: (connection: Connection) => {
-        set({ edges: addEdge(connection, get().edges) });
-    },
-
-    setNodes: (nodes: Node<TypeDBNodeData>[]) => set({ nodes }),
-
-    deleteNode: (nodeId: string) => {
-        set({
-            nodes: get().nodes.filter((n) => n.id !== nodeId),
-            // ノード削除時に接続するエッジも削除
-            edges: get().edges.filter(
-                (e) => e.source !== nodeId && e.target !== nodeId
-            ),
-        });
-    },
-
-    addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => {
-        // 先頭を大文字にして初期ラベルを生成（例: "entity" → "Entity"）
-        const label = type.charAt(0).toUpperCase() + type.slice(1);
-        const newNode: Node<TypeDBNodeData> = {
-            id: crypto.randomUUID(),
-            data: {
-                label,
-                typeDBType: type,
-                isAbstract: false,
+            onNodesChange: (changes: NodeChange<Node<TypeDBNodeData>>[]) => {
+                set({ nodes: applyNodeChanges(changes, get().nodes) });
             },
-            position,
-            // typeDBType を node の type に使うことで nodeTypes のマッピングが機能する
-            type,
-        };
-        set({ nodes: [...get().nodes, newNode] });
-        // 追加したノードの id を返すことで呼び出し元が即座に選択状態にできる
-        return newNode.id;
-    },
 
-    updateNodeLabel: (nodeId: string, label: string) => {
-        // 対象ノードのラベルのみ更新。他のフィールドは変更しない
-        set({
-            nodes: get().nodes.map((n) =>
-                n.id === nodeId
-                    ? { ...n, data: { ...n.data, label } }
-                    : n
-            ),
-        });
-    },
+            onEdgesChange: (changes: EdgeChange<Edge<TypeDBEdgeData>>[]) => {
+                set({ edges: applyEdgeChanges(changes, get().edges) });
+            },
 
-    setNarration: (text: string) => set({ narration: text }),
-}));
+            onConnect: (connection: Connection) => {
+                set({ edges: addEdge(connection, get().edges) });
+            },
+
+            setNodes: (nodes: Node<TypeDBNodeData>[]) => set({ nodes }),
+
+            deleteNode: (nodeId: string) => {
+                set({
+                    nodes: get().nodes.filter((n) => n.id !== nodeId),
+                    edges: get().edges.filter(
+                        (e) => e.source !== nodeId && e.target !== nodeId
+                    ),
+                });
+            },
+
+            addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => {
+                const label = type.charAt(0).toUpperCase() + type.slice(1);
+                const newNode: Node<TypeDBNodeData> = {
+                    id: crypto.randomUUID(),
+                    data: { label, typeDBType: type, isAbstract: false },
+                    position,
+                    type,
+                };
+                set({ nodes: [...get().nodes, newNode] });
+                return newNode.id;
+            },
+
+            updateNodeLabel: (nodeId: string, label: string) => {
+                set({
+                    nodes: get().nodes.map((n) =>
+                        n.id === nodeId
+                            ? { ...n, data: { ...n.data, label } }
+                            : n
+                    ),
+                });
+            },
+
+            setNarration: (text: string) => set({ narration: text }),
+
+            // エッジのロール名を更新する
+            updateEdgeRole: (edgeId: string, role: string) => {
+                set({
+                    edges: get().edges.map((e) =>
+                        e.id === edgeId
+                            ? { ...e, data: { ...e.data, role }, label: role }
+                            : e
+                    ),
+                });
+            },
+
+            // エッジを削除する（接続先ノードは残る）
+            deleteEdge: (edgeId: string) => {
+                set({
+                    edges: get().edges.filter((e) => e.id !== edgeId),
+                });
+            },
+        }),
+        {
+            name: 'visual-thinkering-graph',
+            storage: createJSONStorage(() => localStorage),
+            version: 1,
+            partialize: (state) => ({
+                nodes: state.nodes,
+                edges: state.edges,
+                narration: state.narration,
+            }),
+        }
+    )
+);
