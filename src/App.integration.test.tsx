@@ -18,6 +18,21 @@ import { useStore } from './store';
 import type { Node as FlowNode } from '@xyflow/react';
 import type { TypeDBNodeData, TypeDBMetaType } from '@/types';
 
+// react-resizable-panels は ResizeObserver を使うが
+// jsdom 環境ではレイアウト計算ができないためシンプルな div に差し替える
+vi.mock('react-resizable-panels', () => ({
+    PanelGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    Panel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    PanelResizeHandle: () => null,
+}));
+
+// shadcn の resizable も同様にモック
+vi.mock('@/components/ui/resizable', () => ({
+    ResizablePanelGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    ResizablePanel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
+    ResizableHandle: () => null,
+}));
+
 // -----------------------------------------------
 // GraphCanvas モック
 // テスト内から onNodeClick / onNodeAdded / deleteNode を
