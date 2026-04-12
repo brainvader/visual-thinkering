@@ -1,10 +1,11 @@
 // src/lib/connectionRules.ts
-import { Connection, Node as FlowNode } from '@xyflow/react';
+import { Connection, Node as FlowNode, Edge as FlowEdge } from '@xyflow/react';
 import { TypeDBNodeData } from '@/types';
 
 /**
  * TypeDB のスキーマルールに基づいて接続の有効性を検証する。
  * React Flow の isValidConnection prop に渡して使う。
+ * 引数は Connection または Edge<unknown> の union 型になる。
  *
  * 許可される接続:
  *   Entity    → Relation  （plays: Entity が Relation のロールを担う）
@@ -18,7 +19,7 @@ import { TypeDBNodeData } from '@/types';
  *   * → * (self)          （自己ループは禁止）
  */
 export function isValidTypeDBConnection(
-    connection: Connection,
+    connection: Connection | FlowEdge,
     nodes: FlowNode<TypeDBNodeData>[]
 ): boolean {
     const sourceNode = nodes.find((n) => n.id === connection.source);
