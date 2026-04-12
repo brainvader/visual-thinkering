@@ -15,7 +15,7 @@ import {
     Edge,
     useReactFlow,
 } from '@xyflow/react';
-import { Trash2, ExternalLink, Box, Diamond, CircleDot } from 'lucide-react';
+import { Trash2, ExternalLink, Box, Diamond, CircleDot, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // nodeTypes はモジュールレベルの定数を import する
 // コンポーネント内で定義すると再レンダリングのたびに再生成され React Flow が無視する
@@ -32,18 +32,19 @@ interface GraphCanvasProps {
     onPaneClick: () => void;
     selectedNode: Node<TypeDBNodeData> | null;
     deleteNode: (id: string) => void;
+    deleteEdge?: (id: string) => void;
     addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
     onNodeAdded?: (nodeId: string) => void;
 }
 
 // コンテキストメニューの状態
+// mode: 'node' → Node Actions、'edge' → Edge Actions、'canvas' → Quick Add
 interface ContextMenuState {
     x: number;
     y: number;
-    // 'node' → Node Actions、'canvas' → Quick Add
-    mode: 'node' | 'canvas';
-    // ノードモード時の対象ノード
+    mode: 'node' | 'edge' | 'canvas';
     targetNode: Node<TypeDBNodeData> | null;
+    targetEdge: Edge<TypeDBEdgeData> | null;
 }
 
 // useReactFlow は ReactFlowProvider の内側でしか使えないため内部コンポーネントとして分離
@@ -57,6 +58,7 @@ function GraphCanvasInner({
     onEdgeClick,
     onPaneClick,
     deleteNode,
+    deleteEdge,
     addNode,
     onNodeAdded,
 }: GraphCanvasProps) {
@@ -85,16 +87,35 @@ function GraphCanvasInner({
         (e: React.MouseEvent, node: Node<TypeDBNodeData>) => {
             e.preventDefault();
             e.stopPropagation();
-            // 右クリックしたノードを即選択状態にする
             onNodeClick(e, node);
             setContextMenu({
                 x: e.clientX,
                 y: e.clientY,
                 mode: 'node',
                 targetNode: node,
+                targetEdge: null,
             });
         },
         [onNodeClick]
+    );
+
+    // エッジ上で右クリック → Edge Actions
+    // エッジを選択状態にしてからメニューを表示する
+    const handleEdgeContextMenu = useCallback(
+        (e: React.MouseEvent, edge: Edge<TypeDBEdgeData>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // 右クリックしたエッジを即選択状態にする
+            onEdgeClick?.(e, edge);
+            setContextMenu({
+                x: e.clientX,
+                y: e.clientY,
+                mode: 'edge',
+                targetNode: null,
+                targetEdge: edge,
+            });
+        },
+        [onEdgeClick]
     );
 
     // キャンバス空白で右クリック → Quick Add
@@ -105,6 +126,7 @@ function GraphCanvasInner({
             y: (e as MouseEvent).clientY,
             mode: 'canvas',
             targetNode: null,
+            targetEdge: null,
         });
     }, []);
 
@@ -127,6 +149,18 @@ function GraphCanvasInner({
         setContextMenu(null);
     }, [contextMenu, deleteNode]);
 
+    // Delete Edge
+    const handleDeleteEdge = useCallback(() => {
+        if (!contextMenu?.targetEdge) return;
+        deleteEdge?.(contextMenu.targetEdge.id);
+        setContextMenu(null);
+    }, [contextMenu, deleteEdge]);
+
+    // Edit Role（エッジをクリック選択してSidebarで編集するため、メニューを閉じるだけ）
+    const handleEditRole = useCallback(() => {
+        setContextMenu(null);
+    }, []);
+
     return (
         <div className="relative h-full w-full bg-white">
             <ReactFlow
@@ -142,6 +176,7 @@ function GraphCanvasInner({
                     onPaneClick();
                 }}
                 onNodeContextMenu={handleNodeContextMenu}
+                onEdgeContextMenu={handleEdgeContextMenu}
                 onPaneContextMenu={handlePaneContextMenu}
                 nodeTypes={nodeTypes}
                 fitView
@@ -158,7 +193,6 @@ function GraphCanvasInner({
                     ref={menuRef}
                     className="fixed z-50 min-w-48 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
                     style={{ top: contextMenu.y, left: contextMenu.x }}
-                    // メニュー自体のクリックが document に伝播して閉じないよう止める
                     onClick={(e) => e.stopPropagation()}
                 >
                     {contextMenu.mode === 'node' ? (
@@ -172,6 +206,26 @@ function GraphCanvasInner({
                                 onClick={handleDeleteNode}
                             >
                                 <Trash2 size={14} /> Delete Node
+                            </button>
+                        </>
+                    ) : contextMenu.mode === 'edge' ? (
+                        <>
+                            {/* エッジ上での右クリック: Edge Actions */}
+                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-muted-foreground">
+                                Edge Actions
+                            </div>
+                            {/* ロール名編集: Sidebar にフォーカスが移るためメニューを閉じるだけ */}
+                            <button
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm hover:bg-muted outline-none"
+                                onClick={handleEditRole}
+                            >
+                                <PencilLine size={14} /> Edit Role
+                            </button>
+                            <button
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 outline-none"
+                                onClick={handleDeleteEdge}
+                            >
+                                <Trash2 size={14} /> Delete Edge
                             </button>
                         </>
                     ) : (

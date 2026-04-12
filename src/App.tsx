@@ -102,6 +102,7 @@ export default function App() {
                     onPaneClick={onPaneClick}
                     selectedNode={selectedNode}
                     deleteNode={handleDeleteNode}
+                    deleteEdge={handleDeleteEdge}
                     addNode={addNode}
                     onNodeAdded={onNodeAdded}
                   />
