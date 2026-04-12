@@ -28,6 +28,7 @@ interface GraphCanvasProps {
     onEdgesChange: OnEdgesChange<Edge<TypeDBEdgeData>>;
     onConnect: OnConnect;
     onNodeClick: (event: React.MouseEvent, node: Node<TypeDBNodeData>) => void;
+    onEdgeClick?: (event: React.MouseEvent, edge: Edge<TypeDBEdgeData>) => void;
     onPaneClick: () => void;
     selectedNode: Node<TypeDBNodeData> | null;
     deleteNode: (id: string) => void;
@@ -53,8 +54,8 @@ function GraphCanvasInner({
     onEdgesChange,
     onConnect,
     onNodeClick,
+    onEdgeClick,
     onPaneClick,
-    selectedNode,
     deleteNode,
     addNode,
     onNodeAdded,
@@ -135,6 +136,7 @@ function GraphCanvasInner({
                 onEdgesChange={onEdgesChange}
                 onConnect={onConnect}
                 onNodeClick={onNodeClick}
+                onEdgeClick={onEdgeClick}
                 onPaneClick={() => {
                     setContextMenu(null);
                     onPaneClick();

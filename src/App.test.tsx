@@ -6,8 +6,8 @@ describe('Graph Store Logic', () => {
     beforeEach(() => {
         const { setNodes } = useStore.getState();
         setNodes([
-            { id: '1', data: { label: 'Node A' }, position: { x: 0, y: 0 } },
-            { id: '2', data: { label: 'Node B' }, position: { x: 0, y: 0 } },
+            { id: '1', data: { label: 'Node A', typeDBType: 'entity' }, position: { x: 0, y: 0 }, type: 'entity' },
+            { id: '2', data: { label: 'Node B', typeDBType: 'entity' }, position: { x: 0, y: 0 }, type: 'entity' },
         ]);
     });
 
