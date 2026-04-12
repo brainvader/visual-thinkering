@@ -31,10 +31,16 @@ export function RelationNode({ data, selected }: NodeProps<FlowNode<TypeDBNodeDa
             style={{ width, height }}
             className="relative cursor-default select-none"
         >
-            <Handle type="target" position={Position.Top} style={{ top: 0 }} />
-            <Handle type="source" position={Position.Bottom} style={{ bottom: 0 }} />
-            <Handle type="target" position={Position.Left} style={{ left: 0 }} />
-            <Handle type="source" position={Position.Right} style={{ right: 0 }} />
+            {/* ひし形の各頂点に source/target 両方を配置
+                style でひし形の頂点位置に合わせて微調整する */}
+            <Handle type="target" position={Position.Top} id="top-target" style={{ top: 0 }} />
+            <Handle type="source" position={Position.Top} id="top-source" style={{ top: 0 }} />
+            <Handle type="target" position={Position.Bottom} id="bottom-target" style={{ bottom: 0 }} />
+            <Handle type="source" position={Position.Bottom} id="bottom-source" style={{ bottom: 0 }} />
+            <Handle type="target" position={Position.Left} id="left-target" style={{ left: 0 }} />
+            <Handle type="source" position={Position.Left} id="left-source" style={{ left: 0 }} />
+            <Handle type="target" position={Position.Right} id="right-target" style={{ right: 0 }} />
+            <Handle type="source" position={Position.Right} id="right-source" style={{ right: 0 }} />
 
             <svg
                 width={width}
