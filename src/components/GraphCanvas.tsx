@@ -20,6 +20,7 @@ import { Button } from '@/components/ui/button';
 // nodeTypes はモジュールレベルの定数を import する
 // コンポーネント内で定義すると再レンダリングのたびに再生成され React Flow が無視する
 import { nodeTypes } from './nodes';
+import { isValidTypeDBConnection } from '@/lib/connectionRules';
 
 interface GraphCanvasProps {
     nodes: Node<TypeDBNodeData>[];
@@ -30,7 +31,6 @@ interface GraphCanvasProps {
     onNodeClick: (event: React.MouseEvent, node: Node<TypeDBNodeData>) => void;
     onEdgeClick?: (event: React.MouseEvent, edge: Edge<TypeDBEdgeData>) => void;
     onPaneClick: () => void;
-    selectedNode: Node<TypeDBNodeData> | null;
     deleteNode: (id: string) => void;
     deleteEdge?: (id: string) => void;
     addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
@@ -179,6 +179,9 @@ function GraphCanvasInner({
                 onEdgeContextMenu={handleEdgeContextMenu}
                 onPaneContextMenu={handlePaneContextMenu}
                 nodeTypes={nodeTypes}
+                isValidConnection={(connection) =>
+                    isValidTypeDBConnection(connection, nodes)
+                }
                 fitView
                 fitViewOptions={{ padding: 0.5 }}
             >
