@@ -39,7 +39,10 @@ describe('store: onConnect でエッジに矢印が付くこと', () => {
         });
 
         const edge = useStore.getState().edges[0];
-        expect((edge.markerEnd as { type: MarkerType }).type).toBe(MarkerType.ArrowClosed);
+        const marker = edge.markerEnd as { type: MarkerType; width: number; height: number };
+        expect(marker.type).toBe(MarkerType.ArrowClosed);
+        expect(marker.width).toBe(20);
+        expect(marker.height).toBe(20);
     });
 
     it('複数接続しても全エッジに markerEnd が付くこと', () => {
