@@ -34,8 +34,9 @@ export const useStore = create<GraphState>((set, get) => ({
         {
             id: crypto.randomUUID(),
             data: { label: 'Entity', typeDBType: 'entity', isAbstract: false },
-            position: { x: 250, y: 5 },
-            type: 'default',
+            position: { x: 250, y: 150 },
+            // typeDBType を React Flow の type に使うことで Custom Node が描画される
+            type: 'entity',
         },
     ],
     edges: [],
@@ -76,7 +77,8 @@ export const useStore = create<GraphState>((set, get) => ({
                 isAbstract: false,
             },
             position,
-            type: 'default',
+            // typeDBType を node の type に使うことで nodeTypes のマッピングが機能する
+            type,
         };
         set({ nodes: [...get().nodes, newNode] });
     },
