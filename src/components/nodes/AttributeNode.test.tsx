@@ -1,9 +1,18 @@
 // src/components/nodes/AttributeNode.test.tsx
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { AttributeNode } from './AttributeNode';
 import type { NodeProps, Node as FlowNode } from '@xyflow/react';
 import type { TypeDBNodeData } from '@/types';
+
+// Handle は ReactFlowProvider なしでは動作しないためモックする
+vi.mock('@xyflow/react', async (importOriginal) => {
+    const actual = await importOriginal<typeof import('@xyflow/react')>();
+    return {
+        ...actual,
+        Handle: () => null,
+    };
+});
 
 // React Flow の NodeProps 最小モック
 const makeProps = (label: string, selected = false): NodeProps<FlowNode<TypeDBNodeData>> => ({
