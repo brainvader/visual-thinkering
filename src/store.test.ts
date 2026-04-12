@@ -2,53 +2,162 @@
 import { describe, it, expect, beforeEach } from 'vitest';
 import { useStore } from './store';
 
+// -----------------------------------------------
 // 各テスト前にストアを既知の状態にリセット
+// -----------------------------------------------
 const resetStore = () => {
     useStore.setState({
         nodes: [
-            { id: '1', data: { label: 'Person', typeDBType: 'entity' }, position: { x: 0, y: 0 } },
-            { id: '2', data: { label: 'Company', typeDBType: 'entity' }, position: { x: 100, y: 0 } },
+            {
+                id: 'node-1',
+                data: { label: 'Person', typeDBType: 'entity' },
+                position: { x: 0, y: 0 },
+            },
+            {
+                id: 'node-2',
+                data: { label: 'Company', typeDBType: 'entity' },
+                position: { x: 100, y: 0 },
+            },
         ],
         edges: [
-            { id: 'e1-2', source: '1', target: '2', data: { role: 'employer' } },
+            { id: 'e1-2', source: 'node-1', target: 'node-2', data: { role: 'employer' } },
         ],
         narration: '',
     });
 };
 
-describe('store: ノード操作', () => {
+// -----------------------------------------------
+// 既存: ノード削除
+// -----------------------------------------------
+describe('store: deleteNode', () => {
     beforeEach(resetStore);
 
-    it('指定したIDのノードが削除されること', () => {
-        useStore.getState().deleteNode('1');
+    it('指定した ID のノードが削除されること', () => {
+        useStore.getState().deleteNode('node-1');
         const { nodes } = useStore.getState();
         expect(nodes).toHaveLength(1);
-        expect(nodes[0].id).toBe('2');
+        expect(nodes[0].id).toBe('node-2');
     });
 
     it('ノード削除時に接続するエッジも削除されること', () => {
-        useStore.getState().deleteNode('1');
-        const { edges } = useStore.getState();
-        // ノード '1' に繋がるエッジ e1-2 も消えるはず
-        expect(edges).toHaveLength(0);
+        useStore.getState().deleteNode('node-1');
+        expect(useStore.getState().edges).toHaveLength(0);
     });
 
-    it('存在しないIDを削除してもエラーにならないこと', () => {
+    it('存在しない ID を削除してもエラーにならないこと', () => {
         useStore.getState().deleteNode('999');
         expect(useStore.getState().nodes).toHaveLength(2);
     });
+});
 
-    it('setNodes でノードを一括置換できること', () => {
-        useStore.getState().setNodes([
-            { id: '99', data: { label: 'NewNode', typeDBType: 'relation' }, position: { x: 0, y: 0 } },
-        ]);
-        const { nodes } = useStore.getState();
-        expect(nodes).toHaveLength(1);
-        expect(nodes[0].id).toBe('99');
+// -----------------------------------------------
+// 新規: ノード追加（addNode）
+// ← store.ts に addNode が未実装なので全件 fail する
+// -----------------------------------------------
+describe('store: addNode', () => {
+    beforeEach(resetStore);
+
+    it('addNode を呼ぶとノードが 1 件追加されること', () => {
+        useStore.getState().addNode('entity', { x: 200, y: 200 });
+        expect(useStore.getState().nodes).toHaveLength(3);
+    });
+
+    it('追加されたノードの typeDBType が引数と一致すること', () => {
+        useStore.getState().addNode('relation', { x: 0, y: 0 });
+        const added = useStore.getState().nodes.at(-1)!;
+        expect(added.data.typeDBType).toBe('relation');
+    });
+
+    it('追加されたノードの position が引数と一致すること', () => {
+        useStore.getState().addNode('attribute', { x: 123, y: 456 });
+        const added = useStore.getState().nodes.at(-1)!;
+        expect(added.position).toEqual({ x: 123, y: 456 });
+    });
+
+    it('追加されたノードの id が UUID v4 形式であること', () => {
+        useStore.getState().addNode('entity', { x: 0, y: 0 });
+        const added = useStore.getState().nodes.at(-1)!;
+        // UUID v4: xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx
+        expect(added.id).toMatch(
+            /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i
+        );
+    });
+
+    it('entity を追加したとき初期ラベルが "Entity" であること', () => {
+        useStore.getState().addNode('entity', { x: 0, y: 0 });
+        const added = useStore.getState().nodes.at(-1)!;
+        expect(added.data.label).toBe('Entity');
+    });
+
+    it('relation を追加したとき初期ラベルが "Relation" であること', () => {
+        useStore.getState().addNode('relation', { x: 0, y: 0 });
+        const added = useStore.getState().nodes.at(-1)!;
+        expect(added.data.label).toBe('Relation');
+    });
+
+    it('attribute を追加したとき初期ラベルが "Attribute" であること', () => {
+        useStore.getState().addNode('attribute', { x: 0, y: 0 });
+        const added = useStore.getState().nodes.at(-1)!;
+        expect(added.data.label).toBe('Attribute');
+    });
+
+    it('isAbstract の初期値が false であること', () => {
+        useStore.getState().addNode('entity', { x: 0, y: 0 });
+        const added = useStore.getState().nodes.at(-1)!;
+        expect(added.data.isAbstract).toBe(false);
+    });
+
+    it('複数回追加しても id がすべて異なること', () => {
+        useStore.getState().addNode('entity', { x: 0, y: 0 });
+        useStore.getState().addNode('entity', { x: 0, y: 0 });
+        useStore.getState().addNode('entity', { x: 0, y: 0 });
+        const ids = useStore.getState().nodes.map((n) => n.id);
+        const uniqueIds = new Set(ids);
+        expect(uniqueIds.size).toBe(ids.length);
     });
 });
 
-describe('store: ナラティブ操作', () => {
+// -----------------------------------------------
+// 新規: ラベル編集（updateNodeLabel）
+// ← store.ts に updateNodeLabel が未実装なので全件 fail する
+// -----------------------------------------------
+describe('store: updateNodeLabel', () => {
+    beforeEach(resetStore);
+
+    it('指定した nodeId のラベルが更新されること', () => {
+        useStore.getState().updateNodeLabel('node-1', 'Researcher');
+        const node = useStore.getState().nodes.find((n) => n.id === 'node-1')!;
+        expect(node.data.label).toBe('Researcher');
+    });
+
+    it('他のノードのラベルには影響しないこと', () => {
+        useStore.getState().updateNodeLabel('node-1', 'Researcher');
+        const other = useStore.getState().nodes.find((n) => n.id === 'node-2')!;
+        expect(other.data.label).toBe('Company');
+    });
+
+    it('存在しない nodeId を渡してもエラーにならないこと', () => {
+        expect(() => {
+            useStore.getState().updateNodeLabel('ghost-id', 'Ghost');
+        }).not.toThrow();
+    });
+
+    it('存在しない nodeId を渡してもノード数が変わらないこと', () => {
+        useStore.getState().updateNodeLabel('ghost-id', 'Ghost');
+        expect(useStore.getState().nodes).toHaveLength(2);
+    });
+
+    it('typeDBType など他のフィールドは変更されないこと', () => {
+        useStore.getState().updateNodeLabel('node-1', 'NewLabel');
+        const node = useStore.getState().nodes.find((n) => n.id === 'node-1')!;
+        expect(node.data.typeDBType).toBe('entity');
+    });
+});
+
+// -----------------------------------------------
+// 既存: narration
+// -----------------------------------------------
+describe('store: narration', () => {
     beforeEach(resetStore);
 
     it('setNarration でテキストが更新されること', () => {
