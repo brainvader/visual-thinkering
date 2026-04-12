@@ -16,6 +16,9 @@ const makeProps = (label: string, selected = false): NodeProps<FlowNode<TypeDBNo
     positionAbsoluteX: 0,
     positionAbsoluteY: 0,
     dragging: false,
+    selectable: true,
+    deletable: true,
+    draggable: true,
 });
 
 describe('RelationNode', () => {
