@@ -1,5 +1,5 @@
 // src/components/GraphCanvas.tsx
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { TypeDBNodeData, TypeDBEdgeData, TypeDBMetaType } from '@/types';
 import {
     ReactFlow,
@@ -15,13 +15,6 @@ import {
     Edge,
     useReactFlow,
 } from '@xyflow/react';
-import {
-    ContextMenu,
-    ContextMenuContent,
-    ContextMenuItem,
-    ContextMenuTrigger,
-    ContextMenuSeparator,
-} from '@/components/ui/context-menu';
 import { Trash2, ExternalLink, Box, Diamond, CircleDot } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // nodeTypes はモジュールレベルの定数を import する
@@ -42,6 +35,16 @@ interface GraphCanvasProps {
     onNodeAdded?: (nodeId: string) => void;
 }
 
+// コンテキストメニューの状態
+interface ContextMenuState {
+    x: number;
+    y: number;
+    // 'node' → Node Actions、'canvas' → Quick Add
+    mode: 'node' | 'canvas';
+    // ノードモード時の対象ノード
+    targetNode: Node<TypeDBNodeData> | null;
+}
+
 // useReactFlow は ReactFlowProvider の内側でしか使えないため内部コンポーネントとして分離
 function GraphCanvasInner({
     nodes,
@@ -57,82 +60,124 @@ function GraphCanvasInner({
     onNodeAdded,
 }: GraphCanvasProps) {
     const { screenToFlowPosition } = useReactFlow();
+    const menuRef = useRef<HTMLDivElement>(null);
 
-    // 右クリック時のスクリーン座標を一時保持
-    const [contextMenuScreenPos, setContextMenuScreenPos] = useState<{
-        x: number;
-        y: number;
-    } | null>(null);
+    // カスタムコンテキストメニューの状態
+    const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
-    // ContextMenu を key で再マウントすることで強制的に閉じる
-    // Radix UI の ContextMenu は open props を受け付けないため、この方法で閉じる
-    const [menuKey, setMenuKey] = useState(0);
-
-    const handleContextMenu = useCallback((e: React.MouseEvent) => {
-        setContextMenuScreenPos({ x: e.clientX, y: e.clientY });
+    // 外側クリックでメニューを閉じる
+    useEffect(() => {
+        const handleClick = () => setContextMenu(null);
+        const handleKeyDown = (e: KeyboardEvent) => {
+            if (e.key === 'Escape') setContextMenu(null);
+        };
+        document.addEventListener('click', handleClick);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => {
+            document.removeEventListener('click', handleClick);
+            document.removeEventListener('keydown', handleKeyDown);
+        };
     }, []);
 
-    // Quick Add: 座標変換 → ノード追加 → メニューを閉じる → 追加ノードを即選択
-    const handleAddNode = useCallback(
-        (type: TypeDBMetaType) => {
-            const screenPos = contextMenuScreenPos ?? {
-                x: window.innerWidth / 2,
-                y: window.innerHeight / 2,
-            };
-            const flowPos = screenToFlowPosition(screenPos);
-
-            // addNode が新ノードの id を返すのでタイミング問題なく即選択できる
-            const newNodeId = addNode(type, flowPos);
-
-            // key を更新して ContextMenu を再マウント → 閉じる
-            setMenuKey((k) => k + 1);
-
-            // 追加したノードを即フォーカス
-            onNodeAdded?.(newNodeId);
+    // ノード上で右クリック → Node Actions
+    const handleNodeContextMenu = useCallback(
+        (e: React.MouseEvent, node: Node<TypeDBNodeData>) => {
+            e.preventDefault();
+            e.stopPropagation();
+            // 右クリックしたノードを即選択状態にする
+            onNodeClick(e, node);
+            setContextMenu({
+                x: e.clientX,
+                y: e.clientY,
+                mode: 'node',
+                targetNode: node,
+            });
         },
-        [contextMenuScreenPos, screenToFlowPosition, addNode, onNodeAdded]
+        [onNodeClick]
     );
 
-    return (
-        <div className="relative h-full w-full bg-white" onContextMenu={handleContextMenu}>
-            <ContextMenu key={menuKey}>
-                <ContextMenuTrigger className="block h-full w-full">
-                    <ReactFlow
-                        nodes={nodes}
-                        edges={edges}
-                        onNodesChange={onNodesChange}
-                        onEdgesChange={onEdgesChange}
-                        onConnect={onConnect}
-                        onNodeClick={onNodeClick}
-                        onPaneClick={onPaneClick}
-                        nodeTypes={nodeTypes}
-                        fitView
-                    >
-                        <Background variant={BackgroundVariant.Dots} color="#e2e2e7" gap={20} />
-                        <Controls />
-                        <MiniMap style={{ backgroundColor: '#fff' }} nodeColor="#e2e2e7" />
-                    </ReactFlow>
-                </ContextMenuTrigger>
+    // キャンバス空白で右クリック → Quick Add
+    const handlePaneContextMenu = useCallback((e: React.MouseEvent | MouseEvent) => {
+        (e as React.MouseEvent).preventDefault?.();
+        setContextMenu({
+            x: (e as MouseEvent).clientX,
+            y: (e as MouseEvent).clientY,
+            mode: 'canvas',
+            targetNode: null,
+        });
+    }, []);
 
-                <ContextMenuContent className="w-64 p-2">
-                    {selectedNode ? (
+    // Quick Add
+    const handleAddNode = useCallback(
+        (type: TypeDBMetaType) => {
+            if (!contextMenu) return;
+            const flowPos = screenToFlowPosition({ x: contextMenu.x, y: contextMenu.y });
+            const newNodeId = addNode(type, flowPos);
+            setContextMenu(null);
+            onNodeAdded?.(newNodeId);
+        },
+        [contextMenu, screenToFlowPosition, addNode, onNodeAdded]
+    );
+
+    // Delete Node
+    const handleDeleteNode = useCallback(() => {
+        if (!contextMenu?.targetNode) return;
+        deleteNode(contextMenu.targetNode.id);
+        setContextMenu(null);
+    }, [contextMenu, deleteNode]);
+
+    return (
+        <div className="relative h-full w-full bg-white">
+            <ReactFlow
+                nodes={nodes}
+                edges={edges}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
+                onNodeClick={onNodeClick}
+                onPaneClick={() => {
+                    setContextMenu(null);
+                    onPaneClick();
+                }}
+                onNodeContextMenu={handleNodeContextMenu}
+                onPaneContextMenu={handlePaneContextMenu}
+                nodeTypes={nodeTypes}
+                fitView
+            >
+                <Background variant={BackgroundVariant.Dots} color="#e2e2e7" gap={20} />
+                <Controls />
+                <MiniMap style={{ backgroundColor: '#fff' }} nodeColor="#e2e2e7" />
+            </ReactFlow>
+
+            {/* カスタムコンテキストメニュー */}
+            {contextMenu && (
+                <div
+                    ref={menuRef}
+                    className="fixed z-50 min-w-48 rounded-lg border bg-popover p-1 text-popover-foreground shadow-md"
+                    style={{ top: contextMenu.y, left: contextMenu.x }}
+                    // メニュー自体のクリックが document に伝播して閉じないよう止める
+                    onClick={(e) => e.stopPropagation()}
+                >
+                    {contextMenu.mode === 'node' ? (
                         <>
+                            {/* ノード上での右クリック: Node Actions */}
                             <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-muted-foreground">
                                 Node Actions
                             </div>
-                            <ContextMenuItem
-                                className="gap-2 text-red-500 focus:text-red-500"
-                                onClick={() => deleteNode(selectedNode.id)}
+                            <button
+                                className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-red-500 hover:bg-red-50 outline-none"
+                                onClick={handleDeleteNode}
                             >
                                 <Trash2 size={14} /> Delete Node
-                            </ContextMenuItem>
+                            </button>
                         </>
                     ) : (
                         <>
-                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-muted-foreground mb-1">
+                            {/* キャンバス空白での右クリック: Quick Add */}
+                            <div className="px-2 py-1.5 text-[10px] font-bold uppercase text-muted-foreground">
                                 Quick Add
                             </div>
-                            <div className="grid grid-cols-3 gap-1 mb-2">
+                            <div className="grid grid-cols-3 gap-1 p-1">
                                 <Button
                                     variant="outline"
                                     size="icon"
@@ -167,13 +212,16 @@ function GraphCanvasInner({
                         </>
                     )}
 
-                    <ContextMenuSeparator />
+                    <div className="my-1 h-px bg-border" />
 
-                    <ContextMenuItem className="gap-2 text-muted-foreground" disabled>
+                    <button
+                        className="flex w-full items-center gap-2 rounded-md px-2 py-1.5 text-sm text-muted-foreground hover:bg-muted outline-none cursor-not-allowed opacity-50"
+                        disabled
+                    >
                         <ExternalLink size={14} /> Open in VS Code
-                    </ContextMenuItem>
-                </ContextMenuContent>
-            </ContextMenu>
+                    </button>
+                </div>
+            )}
         </div>
     );
 }

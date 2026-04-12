@@ -150,7 +150,19 @@ useLayoutEffect(() => {
 
 ---
 
-## テスト方針（Red → Green）
+## 6. コンテキストメニューの仕様
+
+| 右クリック対象 | 表示内容                                   | 条件                          |
+| -------------- | ------------------------------------------ | ----------------------------- |
+| キャンバス空白 | Quick Add（Entity / Relation / Attribute） | 常に表示                      |
+| ノード上       | Node Actions（Delete Node）                | `selectedNode` が存在する場合 |
+| どこでも       | ブラウザのネイティブメニューは表示しない   | `preventDefault()` で抑制     |
+
+### 実装上の注意
+
+- React Flow の `onNodeContextMenu` と `onPaneContextMenu` でノード/空白を明確に分離する
+- メニュー内容の切り替えフラグは `useRef` で管理する（`useState` だと非同期更新により表示タイミングがずれる）
+- `onNodeContextMenu` では右クリックしたノードを `selectedNode` にセットする（クリックなしでも削除できる）
 
 ### コンポーネントテスト
 
