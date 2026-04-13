@@ -1,7 +1,7 @@
 // src/components/TypeQLPanel.tsx
 // グラフから生成した TypeQL をリアルタイムで表示するパネル
 
-import { useState, useCallback } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { Copy, Check, AlertTriangle } from 'lucide-react';
 import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
