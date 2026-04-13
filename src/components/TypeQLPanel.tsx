@@ -79,8 +79,19 @@ export function TypeQLPanel({ nodes, edges }: TypeQLPanelProps) {
             {warnings.length > 0 && (
                 <div className="flex items-start gap-1.5 rounded-md bg-amber-50 border border-amber-200 px-2 py-1.5 text-xs text-amber-700">
                     <AlertTriangle size={12} className="mt-0.5 shrink-0" />
-                    <div>
-                        <p className="font-medium">ロール名が未設定のエッジがあります（{warnings.length}件）</p>
+                    <div className="flex flex-col gap-0.5">
+                        {/* ロール名未設定の警告 */}
+                        {warnings.some((w) => w.message.includes('ロール名が設定されていません')) && (
+                            <p className="font-medium">
+                                ロール名が未設定のエッジがあります（{warnings.filter((w) => w.message.includes('ロール名が設定されていません')).length}件）
+                            </p>
+                        )}
+                        {/* キーワード衝突の警告 */}
+                        {warnings.filter((w) => w.message.includes('TypeQL のキーワード')).map((w) => (
+                            <p key={w.edgeId} className="font-medium">
+                                {w.message}
+                            </p>
+                        ))}
                         <p className="text-amber-600/80">エッジをクリックして Sidebar でロール名を設定してください</p>
                     </div>
                 </div>
