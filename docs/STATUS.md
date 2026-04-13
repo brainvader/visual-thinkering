@@ -99,11 +99,13 @@
 
 | 機能                                     | ステータス | テスト |
 | ---------------------------------------- | ---------- | ------ |
-| ノード全体をドラッグして接続できる       | ❌         | ❌     |
-| FloatingEdge（境界から最短距離）         | ❌         | ❌     |
-| CustomConnectionLine（接続中の線）       | ❌         | ❌     |
-| dragHandle によるドラッグ移動の維持      | ❌         | ❌     |
-| 既存エッジの floating 移行（persist v2） | ❌         | ❌     |
+| ノード全体をドラッグして接続できる       | 🔁 保留    | ❌     |
+| FloatingEdge（境界から最短距離）         | 🔁 保留    | ❌     |
+| CustomConnectionLine（接続中の線）       | 🔁 保留    | ❌     |
+| dragHandle によるドラッグ移動の維持      | 🔁 保留    | ❌     |
+| 既存エッジの floating 移行（persist v2） | 🔁 保留    | ❌     |
+
+> ⚠️ RelationNode の SVG ひし形と Handle の干渉により実装を中断。再設計が必要。
 
 ---
 
