@@ -13,7 +13,7 @@ TypeDB スキーマをビジュアルに設計するデスクトップアプリ�
 | Frontend | React 19 + TypeScript 5.8 + Vite 7    |
 | Desktop  | Tauri 2.x (Rust)                      |
 | Graph    | @xyflow/react 12                      |
-| State    | Zustand 5                             |
+| State    | Zustand 5 + persist middleware        |
 | UI       | shadcn/ui (Radix UI + Tailwind CSS 4) |
 | Testing  | Vitest 4 + React Testing Library      |
 | Pkg Mgr  | pnpm                                  |
@@ -32,24 +32,33 @@ pnpm dlx shadcn@latest add <component>  # shadcn コンポーネント追加
 
 ```
 src/
-├── main.tsx              # エントリーポイント
-├── App.tsx               # ルート：4パネルレイアウト
-├── store.ts              # Zustand（nodes, edges, narration）
-├── types/index.ts        # TypeDB 型定義
+├── main.tsx
+├── App.tsx                    # ルート：4パネルレイアウト・selectedNode/selectedEdge 管理
+├── store.ts                   # Zustand + persist（localStorage）
+├── types/index.ts             # TypeDB 型定義
 ├── components/
-│   ├── GraphCanvas.tsx   # React Flow キャンバス
-│   ├── Sidebar.tsx       # ノードインスペクター
-│   ├── NarrationPanel.tsx # ナラティブ入力
-│   ├── LLMAssistant.tsx  # LLM 命令インターフェース
-│   └── ui/               # shadcn/ui プリミティブ
+│   ├── GraphCanvas.tsx        # React Flow キャンバス・カスタムコンテキストメニュー
+│   ├── Sidebar.tsx            # ノード/エッジインスペクター
+│   ├── NarrationPanel.tsx     # ナラティブ入力
+│   ├── LLMAssistant.tsx       # LLM 命令インターフェース
+│   ├── nodes/                 # カスタムノード
+│   │   ├── EntityNode.tsx     # 角丸矩形・青系
+│   │   ├── RelationNode.tsx   # SVGひし形・緑系
+│   │   ├── AttributeNode.tsx  # 楕円・橙系
+│   │   └── index.ts           # nodeTypes export
+│   └── ui/                    # shadcn/ui プリミティブ
+├── hooks/
+│   └── useOwnershipBounds.ts  # owns 関係のバウンディングボックス計算
 ├── lib/
-│   ├── typeql.ts         # グラフ → TypeQL 変換
-│   └── utils.ts          # cn() ユーティリティ
-└── test/setup.ts         # ResizeObserver モック
+│   ├── typeql.ts              # グラフ → TypeQL 変換
+│   ├── connectionRules.ts     # TypeDB 接続制限（isValidTypeDBConnection）
+│   └── utils.ts               # cn() ユーティリティ
+└── test/setup.ts              # ResizeObserver class モック
 docs/
-├── ARCHITECTURE.md       # 設計決定の背景（→ 詳細はこちら）
-├── TESTING.md            # テスト戦略（→ 詳細はこちら）
-└── specs/                # 未実装機能のスペック（AIへの指示起点）
+├── ARCHITECTURE.md            # 設計決定の背景
+├── TESTING.md                 # テスト戦略
+├── STATUS.md                  # 実装状況一覧（機能単位）
+└── specs/                     # 機能仕様（実装の起点）
 ```
 
 ## Architecture
@@ -61,6 +70,8 @@ docs/
 | Left   | 20%  | NarrationPanel                         |
 | Center | 60%  | GraphCanvas (75%) + LLMAssistant (25%) |
 | Right  | 20%  | Sidebar                                |
+
+**selectedNode / selectedEdge はノード/エッジを同時選択しない。App.tsx のローカル state で管理（store に入れると React Flow と干渉する）。**
 
 ### State (store.ts)
 
@@ -74,7 +85,19 @@ const nodes = useStore((s) => s.nodes);
 const store = useStore();
 ```
 
-Store API: `nodes`, `edges`, `narration`, `onNodesChange`, `onEdgesChange`, `onConnect`, `setNodes`, `setNarration`, `deleteNode`
+**Store API:**
+
+| メソッド                                        | 説明                              |
+| ----------------------------------------------- | --------------------------------- |
+| `addNode(type, position)`                       | ノード追加 → 新ノードの id を返す |
+| `deleteNode(nodeId)`                            | ノード + 接続エッジを削除         |
+| `updateNodeLabel(nodeId, label)`                | ラベル更新                        |
+| `updateEdgeRole(edgeId, role)`                  | エッジのロール名更新              |
+| `deleteEdge(edgeId)`                            | エッジ削除（ノードは残る）        |
+| `setNarration(text)`                            | ナラティブ更新                    |
+| `onNodesChange` / `onEdgesChange` / `onConnect` | React Flow ハンドラ               |
+
+**persist 設定:** `name: 'visual-thinkering-graph'`, `version: 2`, `partialize` で関数を除外。
 
 ### Type System
 
@@ -95,13 +118,52 @@ interface TypeDBEdgeData {
 }
 ```
 
+**NodeProps の型引数:** `NodeProps<Node<TypeDBNodeData>>`（`Node` は `@xyflow/react` の `Node` を `FlowNode` として alias）
+
+### Custom Nodes
+
+各ノードの Handle パターン（上下左右 × source/target の8ソケット）:
+
+```tsx
+<Handle type="target" position={Position.Top}    id="top-target" />
+<Handle type="source" position={Position.Top}    id="top-source" />
+// ... 同様に Bottom / Left / Right
+```
+
+**RelationNode のみ SVG ひし形を使用。** 他は div ベース。
+
+### GraphCanvas の主要設定
+
+```tsx
+<ReactFlow
+  nodeTypes={nodeTypes} // モジュールレベル定数（再生成禁止）
+  connectionMode={ConnectionMode.Loose}
+  isValidConnection={(c) => isValidTypeDBConnection(c, nodes)}
+  fitView
+  fitViewOptions={{ padding: 0.5 }}
+/>
+```
+
+**コンテキストメニュー:** Radix UI ContextMenu を廃止。カスタムポップアップ（`onNodeContextMenu` / `onPaneContextMenu` / `onEdgeContextMenu`）で実装。
+
+### TypeDB セマンティクス
+
+| エッジ方向           | 意味                  |
+| -------------------- | --------------------- |
+| Entity → Relation    | plays（ロール名必須） |
+| Entity → Attribute   | owns                  |
+| Relation → Attribute | owns                  |
+| Relation → Relation  | nested relation       |
+| Attribute → \*       | ❌ 禁止               |
+| Entity → Entity      | ❌ 禁止               |
+
 ## Conventions
 
-- **Path alias**: `@/` → `./src/`（すべての import で使用）
+- **Path alias**: `@/` → `./src/`
 - **Comments**: コード内コメントは日本語で実装意図を記述
 - **shadcn/ui**: style=`radix-nova`, icons=`lucide`, color=`neutral`
 - **Rust**: 変更最小限。ロジックは React フロントエンドに置く
-- **CSP**: `null`（開発柔軟性のため意図的に無効化）
+- **nodeTypes / edgeTypes**: 必ずモジュールレベルで定義（コンポーネント内で定義すると再レンダリングで無効化される）
 
 ## Testing Policy
 
@@ -109,10 +171,20 @@ interface TypeDBEdgeData {
 
 - **新機能**: failed test → 実装（Red → Green）
 - **バグ修正**: 再現テスト（failed）を先に書いてから修正
-- **リファクタリング**: 先にテストで振る舞いを固める
-- **テストファイル**: ソースと同階層に配置（例: `App.test.tsx`）
+- **テストファイル**: ソースと同階層に配置
+- **Handle モック**: ノードテストでは `vi.mock('@xyflow/react', ...)` で `Handle: () => null` に差し替え
+- **ResizeObserver モック**: `setup.ts` で class 構文で定義（`vi.fn()` では `new` できない）
+
+## ⚠️ やってはいけないこと
+
+- `useStore()` でストア全体を購読しない（無限ループ）
+- `nodeTypes` / `edgeTypes` をコンポーネント内で定義しない（React Flow が無視する）
+- `selectedNode` を store に入れない（React Flow の再レンダリングと干渉）
+- ノード全体を Handle に置き換える実装（Easy Connect）は RelationNode の SVG と干渉するため保留
 
 ## Specs
 
-未実装機能のスペックは [`docs/specs/`](docs/specs/) に置く。  
+実装状況: [`docs/STATUS.md`](docs/STATUS.md)  
+機能仕様: [`docs/specs/`](docs/specs/)
+
 スペックを読んで「failed test を書き、それを通す実装を書く」フローで開発する。
