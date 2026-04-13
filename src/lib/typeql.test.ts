@@ -158,6 +158,28 @@ describe('generateTypeQL: 警告情報', () => {
         );
         expect(warnings).toHaveLength(0);
     });
+
+    it('ロール名が TypeQL キーワードと同名のとき警告が返されること', () => {
+        const edge = makeEdge('e1', 'n1', 'n3', 'plays'); // "plays" はキーワード
+        const { warnings } = generateTypeQL(
+            [person, employment],
+            [edge],
+            { includeWarnings: true }
+        );
+        expect(warnings.length).toBeGreaterThan(0);
+        expect(warnings[0].message).toContain('TypeQL のキーワード');
+    });
+
+    it('キーワードと同名でも TypeQL 自体は生成されること', () => {
+        const edge = makeEdge('e1', 'n1', 'n3', 'plays');
+        const { typeql } = generateTypeQL(
+            [person, employment],
+            [edge],
+            { includeWarnings: true }
+        );
+        // 警告はあるが TypeQL は生成される
+        expect(typeql).toContain('plays employment:plays');
+    });
 });
 
 describe('generateTypeQL: 統合テスト', () => {

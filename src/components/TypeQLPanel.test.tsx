@@ -2,7 +2,7 @@
 // ← TypeQLPanel.tsx が未実装なので全件 fail する
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, act } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { TypeQLPanel } from './TypeQLPanel';
 import type { Node as FlowNode, Edge as FlowEdge } from '@xyflow/react';
@@ -39,6 +39,7 @@ const makeEdge = (
 });
 
 const person = makeNode('n1', 'Person', 'entity');
+const name = makeNode('n2', 'name', 'attribute');
 const employment = makeNode('n3', 'Employment', 'relation');
 
 beforeEach(() => {
@@ -79,6 +80,12 @@ describe('TypeQLPanel', () => {
         const edge = makeEdge('e1', 'n1', 'n3', ''); // ロール名なし
         render(<TypeQLPanel nodes={[person, employment]} edges={[edge]} />);
         expect(screen.getByText(/ロール名が未設定/i)).toBeInTheDocument();
+    });
+
+    it('ロール名が TypeQL キーワードと同名のとき警告が表示されること', () => {
+        const edge = makeEdge('e1', 'n1', 'n3', 'plays');
+        render(<TypeQLPanel nodes={[person, employment]} edges={[edge]} />);
+        expect(screen.getByText(/TypeQL のキーワード/i)).toBeInTheDocument();
     });
 
     it('ロール名が設定されているとき警告が表示されないこと', () => {
