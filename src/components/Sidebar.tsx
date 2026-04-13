@@ -1,10 +1,14 @@
 // src/components/Sidebar.tsx
+// Inspector タブ（ノード/エッジ編集）と TypeQL タブの2タブ構成
+
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Node, Edge } from '@xyflow/react';
 import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { TypeQLPanel } from './TypeQLPanel';
 
 interface SidebarProps {
     selectedNode: Node<TypeDBNodeData> | null;
@@ -13,6 +17,9 @@ interface SidebarProps {
     deleteEdge: (id: string) => void;
     updateNodeLabel: (nodeId: string, label: string) => void;
     updateEdgeRole: (edgeId: string, role: string) => void;
+    // TypeQL タブ用
+    nodes: Node<TypeDBNodeData>[];
+    edges: Edge<TypeDBEdgeData>[];
 }
 
 export const Sidebar = ({
@@ -22,6 +29,8 @@ export const Sidebar = ({
     deleteEdge,
     updateNodeLabel,
     updateEdgeRole,
+    nodes,
+    edges,
 }: SidebarProps) => {
     // ノードラベル編集用ローカル state
     const [editingLabel, setEditingLabel] = useState('');
@@ -82,82 +91,95 @@ export const Sidebar = ({
     );
 
     return (
-        <aside className="h-full border-l bg-card p-4 flex flex-col gap-4">
-            <h2 className="text-lg font-bold">Inspector</h2>
+        <aside className="h-full border-l bg-card flex flex-col">
+            <Tabs defaultValue="inspector" className="flex flex-col h-full">
+                <TabsList className="w-full rounded-none border-b justify-start px-2 h-9 bg-transparent">
+                    <TabsTrigger value="inspector" className="text-xs h-7">Inspector</TabsTrigger>
+                    <TabsTrigger value="typeql" className="text-xs h-7">TypeQL</TabsTrigger>
+                </TabsList>
 
-            {selectedNode ? (
-                /* ノードインスペクター */
-                <div className="flex flex-col gap-4">
-                    <p className="text-xs text-muted-foreground font-mono">
-                        ID: {selectedNode.id}
-                    </p>
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="node-label" className="text-xs font-medium">
-                            Label
-                        </Label>
-                        <Input
-                            id="node-label"
-                            value={editingLabel}
-                            onChange={(e) => setEditingLabel(e.target.value)}
-                            onKeyDown={handleLabelKeyDown}
-                            placeholder="ノード名を入力..."
-                            className="h-8 text-sm"
-                            aria-label="label"
-                        />
-                        <p className="text-[10px] text-muted-foreground/70">
-                            Enter で確定 / Esc でキャンセル
-                        </p>
-                    </div>
-                    <div className="flex flex-col gap-1.5">
-                        <span className="text-xs font-medium text-muted-foreground">Type</span>
-                        <span className="text-xs px-2 py-0.5 rounded-full bg-muted w-fit capitalize">
-                            {selectedNode.data.typeDBType}
-                        </span>
-                    </div>
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        className="w-full mt-auto"
-                        onClick={() => deleteNode(selectedNode.id)}
-                    >
-                        Delete Node
-                    </Button>
-                </div>
-            ) : selectedEdge ? (
-                /* エッジインスペクター */
-                <div className="flex flex-col gap-4">
-                    <p className="text-xs text-muted-foreground font-mono">
-                        Edge ID: {selectedEdge.id}
-                    </p>
-                    <div className="flex flex-col gap-1.5">
-                        <Label htmlFor="edge-role" className="text-xs font-medium">
-                            Role
-                        </Label>
-                        <Input
-                            id="edge-role"
-                            value={editingRole}
-                            onChange={(e) => setEditingRole(e.target.value)}
-                            onKeyDown={handleRoleKeyDown}
-                            placeholder="ロール名を入力（例: employee）"
-                            className="h-8 text-sm"
-                            aria-label="role"
-                        />
-                        <p className="text-[10px] text-muted-foreground/70">
-                            Enter で確定 / Esc でキャンセル
-                        </p>
-                    </div>
-                    <Button
-                        variant="destructive"
-                        size="sm"
-                        className="w-full mt-auto"
-                        onClick={() => deleteEdge(selectedEdge.id)}
-                    >
-                        Delete Edge
-                    </Button>
-                </div>
-            ) : (
-                <p className="text-sm text-muted-foreground">Select a node or edge to edit</p>
-            )}
+                {/* Inspector タブ */}
+                <TabsContent value="inspector" className="flex-1 overflow-y-auto p-4 mt-0">
+                    {selectedNode ? (
+                        /* ノードインスペクター */
+                        <div className="flex flex-col gap-4">
+                            <p className="text-xs text-muted-foreground font-mono">
+                                ID: {selectedNode.id}
+                            </p>
+                            <div className="flex flex-col gap-1.5">
+                                <Label htmlFor="node-label" className="text-xs font-medium">
+                                    Label
+                                </Label>
+                                <Input
+                                    id="node-label"
+                                    value={editingLabel}
+                                    onChange={(e) => setEditingLabel(e.target.value)}
+                                    onKeyDown={handleLabelKeyDown}
+                                    placeholder="ノード名を入力..."
+                                    className="h-8 text-sm"
+                                    aria-label="label"
+                                />
+                                <p className="text-[10px] text-muted-foreground/70">
+                                    Enter で確定 / Esc でキャンセル
+                                </p>
+                            </div>
+                            <div className="flex flex-col gap-1.5">
+                                <span className="text-xs font-medium text-muted-foreground">Type</span>
+                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted w-fit capitalize">
+                                    {selectedNode.data.typeDBType}
+                                </span>
+                            </div>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                className="w-full mt-auto"
+                                onClick={() => deleteNode(selectedNode.id)}
+                            >
+                                Delete Node
+                            </Button>
+                        </div>
+                    ) : selectedEdge ? (
+                        /* エッジインスペクター */
+                        <div className="flex flex-col gap-4">
+                            <p className="text-xs text-muted-foreground font-mono">
+                                Edge ID: {selectedEdge.id}
+                            </p>
+                            <div className="flex flex-col gap-1.5">
+                                <Label htmlFor="edge-role" className="text-xs font-medium">
+                                    Role
+                                </Label>
+                                <Input
+                                    id="edge-role"
+                                    value={editingRole}
+                                    onChange={(e) => setEditingRole(e.target.value)}
+                                    onKeyDown={handleRoleKeyDown}
+                                    placeholder="ロール名を入力（例: employee）"
+                                    className="h-8 text-sm"
+                                    aria-label="role"
+                                />
+                                <p className="text-[10px] text-muted-foreground/70">
+                                    Enter で確定 / Esc でキャンセル
+                                </p>
+                            </div>
+                            <Button
+                                variant="destructive"
+                                size="sm"
+                                className="w-full mt-auto"
+                                onClick={() => deleteEdge(selectedEdge.id)}
+                            >
+                                Delete Edge
+                            </Button>
+                        </div>
+                    ) : (
+                        <p className="text-sm text-muted-foreground">Select a node or edge to edit</p>
+                    )}
+                </TabsContent>
+
+                {/* TypeQL タブ */}
+                <TabsContent value="typeql" className="flex-1 overflow-hidden mt-0">
+                    <TypeQLPanel nodes={nodes} edges={edges} />
+                </TabsContent>
+            </Tabs>
         </aside>
     );
 };
