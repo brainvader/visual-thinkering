@@ -118,6 +118,7 @@ export const Sidebar = ({
                                     placeholder="ノード名を入力..."
                                     className="h-8 text-sm"
                                     aria-label="label"
+                                    autoComplete="off"
                                 />
                                 <p className="text-[10px] text-muted-foreground/70">
                                     Enter で確定 / Esc でキャンセル
@@ -156,6 +157,7 @@ export const Sidebar = ({
                                     placeholder="ロール名を入力（例: employee）"
                                     className="h-8 text-sm"
                                     aria-label="role"
+                                    autoComplete="off"
                                 />
                                 <p className="text-[10px] text-muted-foreground/70">
                                     Enter で確定 / Esc でキャンセル
