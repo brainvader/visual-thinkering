@@ -99,7 +99,8 @@ describe('generateTypeQL: plays 定義', () => {
     it('Entity → Relation（ロール名あり）が plays として出力されること', () => {
         const edge = makeEdge('e1', 'n1', 'n3', 'employee');
         const result = generateTypeQL([person, employment], [edge]);
-        expect(result).toContain('Person plays Employment:employee');
+        // plays は Entity 定義の中に埋め込まれる
+        expect(result).toContain('plays Employment:employee');
     });
 
     it('ロール名なしエッジは plays に含まれないこと', () => {
