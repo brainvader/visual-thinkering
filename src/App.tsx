@@ -127,6 +127,8 @@ export default function App() {
               deleteEdge={handleDeleteEdge}
               updateNodeLabel={updateNodeLabel}
               updateEdgeRole={updateEdgeRole}
+              nodes={nodes}
+              edges={edges}
             />
           </ResizablePanel>
 
