@@ -14,16 +14,24 @@ interface TypeQLPanelProps {
 }
 
 // TypeQL キーワードに色を付けるシンプルなハイライト関数
+// キーワードが型名・ロール名として使われる場合は着色しない
 function highlight(line: string): React.ReactNode {
-    const keywords = ['define', 'sub', 'relates', 'plays', 'owns', 'entity', 'relation', 'attribute', 'value', 'string', 'datetime', 'long', 'double', 'boolean'];
-    const parts = line.split(/(\b(?:define|sub|relates|plays|owns|entity|relation|attribute|value|string|datetime|long|double|boolean)\b|#.*$)/);
+    // 行頭のインデントを保持しながら各トークンを処理する
+    // コメント行はそのまま薄い色で表示
+    if (line.trim().startsWith('#')) {
+        return <span className="text-muted-foreground">{line}</span>;
+    }
+
+    // TypeQL の構造キーワード（行頭または特定の位置に来るもの）
+    // 正規表現でキーワードを単語境界で分割し、位置によって色分けする
+    const parts = line.split(/(\bdefine\b|\bsub\b|\brelates\b|\bplays\b|\bowns\b|\bvalue\b|\bstring\b|\bdatetime\b|\blong\b|\bdouble\b|\bboolean\b|\battribute\b|\brelation\b|\bentity\b)/);
 
     return parts.map((part, i) => {
-        if (part.startsWith('#')) {
-            // コメント行
-            return <span key={i} className="text-muted-foreground">{part}</span>;
-        }
-        if (keywords.includes(part)) {
+        // キーワードのみ着色（偶数インデックスが非キーワード、奇数が区切り文字=キーワード）
+        const isKeyword = i % 2 === 1;
+        if (isKeyword) {
+            // sub の後の型名と区別するため、sub / relates / plays / owns は強調
+            // entity / relation / attribute / value 型も強調
             return <span key={i} className="text-blue-600 font-semibold">{part}</span>;
         }
         return <span key={i}>{part}</span>;

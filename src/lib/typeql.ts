@@ -87,6 +87,15 @@ export function generateTypeQL(
                 continue; // ロール名なしはスキップ
             }
 
+            // TypeQL キーワードと同名のロール名は紛らわしいため警告する
+            const typeqlKeywords = ['define', 'sub', 'relates', 'plays', 'owns', 'entity', 'relation', 'attribute', 'value', 'string', 'type'];
+            if (typeqlKeywords.includes(role)) {
+                warnings.push({
+                    edgeId: edge.id,
+                    message: `ロール名 "${role}" は TypeQL のキーワードと同じです。別の名前を推奨します`,
+                });
+            }
+
             // plays マップに追加
             const playsList = playsMap.get(edge.source) ?? [];
             playsList.push({ relationLabel: targetNode.data.label, role });
