@@ -177,8 +177,8 @@ describe('generateTypeQL: 警告情報', () => {
             [edge],
             { includeWarnings: true }
         );
-        // 警告はあるが TypeQL は生成される
-        expect(typeql).toContain('plays employment:plays');
+        // 警告はあるが TypeQL は生成される（Employment は大文字始まり）
+        expect(typeql).toContain('plays Employment:plays');
     });
 });
 
