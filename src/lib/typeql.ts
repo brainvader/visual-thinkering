@@ -109,9 +109,21 @@ export function generateTypeQL(
     }
 
     // -----------------------------------------------
-    // TypeQL 文字列を組み立てる
+    // TypeQL 文字列を組み立てる（Attribute → Entity → Relation の順）
+    // Attribute を先に定義することで owns の依存関係が解決される
     // -----------------------------------------------
     const lines: string[] = ['define', ''];
+
+    // Attribute 定義（依存される側を先に定義）
+    const attributeNodes = nodes.filter((n) => n.data.typeDBType === 'attribute');
+    if (attributeNodes.length > 0) {
+        lines.push('  # Attribute 定義');
+        for (const node of attributeNodes) {
+            // value 型は将来 TypeDBNodeData に追加予定。現状は string をデフォルトとする
+            lines.push(`  ${node.data.label} sub attribute, value string;`);
+        }
+        lines.push('');
+    }
 
     // Entity 定義
     const entityNodes = nodes.filter((n) => n.data.typeDBType === 'entity');
@@ -147,17 +159,6 @@ export function generateTypeQL(
             lines.push(parts.join(',\n') + ';');
             lines.push('');
         }
-    }
-
-    // Attribute 定義
-    const attributeNodes = nodes.filter((n) => n.data.typeDBType === 'attribute');
-    if (attributeNodes.length > 0) {
-        lines.push('  # Attribute 定義');
-        for (const node of attributeNodes) {
-            // value 型は将来 TypeDBNodeData に追加予定。現状は string をデフォルトとする
-            lines.push(`  ${node.data.label} sub attribute, value string;`);
-        }
-        lines.push('');
     }
 
     const typeql = lines.join('\n').trimEnd();
