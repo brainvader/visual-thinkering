@@ -59,6 +59,10 @@ const roles = edges.filter(...).map((e) => e.data?.role || 'unknown');
 ```typeql
 define
 
+  # Attribute 定義（依存される側を先に定義）
+  name sub attribute, value string;
+  start-date sub attribute, value datetime;
+
   # Entity 定義
   Person sub entity,
     owns name,
@@ -73,10 +77,6 @@ define
     relates employee,
     relates employer,
     owns start-date;
-
-  # Attribute 定義
-  name sub attribute, value string;
-  start-date sub attribute, value datetime;
 ```
 
 ### 生成ルール
