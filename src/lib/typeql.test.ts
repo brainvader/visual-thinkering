@@ -182,7 +182,23 @@ describe('generateTypeQL: 警告情報', () => {
     });
 });
 
-describe('generateTypeQL: 統合テスト', () => {
+describe('generateTypeQL: 出力順序', () => {
+    it('Attribute が Entity より先に定義されること', () => {
+        const edge = makeEdge('e1', 'n1', 'n4'); // Person owns name
+        const result = generateTypeQL([person, name], [edge]);
+        const attrPos = result.indexOf('name sub attribute');
+        const entityPos = result.indexOf('Person sub entity');
+        expect(attrPos).toBeLessThan(entityPos);
+    });
+
+    it('Attribute が Relation より先に定義されること', () => {
+        const edge = makeEdge('e1', 'n3', 'n5'); // Employment owns start-date
+        const result = generateTypeQL([employment, startDate], [edge]);
+        const attrPos = result.indexOf('start-date sub attribute');
+        const relationPos = result.indexOf('Employment sub relation');
+        expect(attrPos).toBeLessThan(relationPos);
+    });
+
     it('Entity + Relation + Attribute の複合グラフが正しく出力されること', () => {
         const e1 = makeEdge('e1', 'n1', 'n3', 'employee'); // Person plays Employment
         const e2 = makeEdge('e2', 'n2', 'n3', 'employer'); // Company plays Employment
