@@ -12,10 +12,12 @@ import {
     OnNodesChange,
     OnEdgesChange,
     OnConnect,
+    ConnectionMode,
     Node,
     Edge,
     useReactFlow,
     useViewport,
+    useNodesInitialized,
 } from '@xyflow/react';
 import { Trash2, ExternalLink, Box, Diamond, CircleDot, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -67,11 +69,24 @@ function GraphCanvasInner({
     addNode,
     onNodeAdded,
 }: GraphCanvasProps) {
-    const { screenToFlowPosition } = useReactFlow();
+    const { screenToFlowPosition, fitView } = useReactFlow();
     // useViewport でリアクティブに viewport を取得する
-    // getViewport() と違い、ズーム・パン・ノード移動時に再レンダリングされる
     const viewport = useViewport();
+    // ノードのサイズ測定が完了したかどうかを監視
+    const nodesInitialized = useNodesInitialized();
     const menuRef = useRef<HTMLDivElement>(null);
+    // fitView を一度だけ実行するためのフラグ
+    const hasFitView = useRef(false);
+
+    // ノードの測定完了後に fitView を実行する
+    // localStorage から復元した直後は measured が undefined のため
+    // fitView prop だけでは正しく中央寄せされない
+    React.useEffect(() => {
+        if (nodesInitialized && !hasFitView.current) {
+            fitView({ padding: 0.5 });
+            hasFitView.current = true;
+        }
+    }, [nodesInitialized, fitView]);
 
     // owns 関係のバウンディングボックス（フロー座標系）
     const ownershipBounds = useOwnershipBounds(selectedNode, nodes, edges);
@@ -193,11 +208,10 @@ function GraphCanvasInner({
                 onEdgeContextMenu={handleEdgeContextMenu}
                 onPaneContextMenu={handlePaneContextMenu}
                 nodeTypes={nodeTypes}
+                connectionMode={ConnectionMode.Loose}
                 isValidConnection={(connection) =>
                     isValidTypeDBConnection(connection, nodes)
                 }
-                fitView
-                fitViewOptions={{ padding: 0.5 }}
             >
                 <Background variant={BackgroundVariant.Dots} color="#e2e2e7" gap={20} />
                 <Controls />
