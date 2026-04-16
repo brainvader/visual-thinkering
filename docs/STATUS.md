@@ -1,6 +1,6 @@
 # STATUS.md — 実装状況
 
-> 最終更新: 2026-04-12
+> 最終更新: 2026-04-16
 > 粒度: 機能単位（ユーザーが体験できる単位）
 > 詳細な仕様・テスト方針は各 `docs/specs/` ファイルを参照
 
@@ -41,7 +41,8 @@
 | 選択時のハイライト表示                                   | ✅         | ✅     |
 | 全方向ソケット（上下左右 × source/target）               | ✅         | ⚠️     |
 | コンテキストメニュー（ノード上・キャンバス上・エッジ上） | ✅         | ⚠️     |
-| Easy Connect（ノード全体をHandleにする）                 | ❌         | ❌     |
+| localStorage 復元後の fitView（useNodesInitialized）     | ✅         | ⚠️     |
+| Easy Connect（ノード全体をHandleにする）                 | 🔁 保留    | ❌     |
 
 ---
 
@@ -55,7 +56,6 @@
 | ロール名編集（Enter 確定 / Escape キャンセル） | ✅         | ✅     |
 | エッジ削除（コンテキストメニュー / Sidebar）   | ✅         | ✅     |
 | エッジ削除後に Sidebar が閉じること            | ✅         | ✅     |
-| FloatingEdge（ノード境界から最短距離で接続）   | ❌         | ❌     |
 
 ---
 
@@ -95,27 +95,43 @@
 
 ---
 
+## TypeQL 出力パネル [`typeql-panel.md`](specs/typeql-panel.md)
+
+| 機能                                           | ステータス | テスト |
+| ---------------------------------------------- | ---------- | ------ |
+| Attribute → Entity → Relation の順で定義を生成 | ✅         | ✅     |
+| owns（Entity/Relation → Attribute）の生成      | ✅         | ✅     |
+| plays（Entity → Relation）の生成               | ✅         | ✅     |
+| relates（Relation のロール）の生成             | ✅         | ✅     |
+| ロール名未設定エッジの警告表示                 | ✅         | ✅     |
+| TypeQL キーワードと同名ロール名の警告          | ✅         | ✅     |
+| シンタックスハイライト                         | ✅         | ⚠️     |
+| Copy ボタン（クリップボードコピー）            | ✅         | ✅     |
+| Sidebar の Inspector / TypeQL タブ化           | ✅         | ⚠️     |
+
+---
+
 ## Easy Connect [`easy-connect.md`](specs/easy-connect.md)
 
-| 機能                                     | ステータス | テスト |
-| ---------------------------------------- | ---------- | ------ |
-| ノード全体をドラッグして接続できる       | 🔁 保留    | ❌     |
-| FloatingEdge（境界から最短距離）         | 🔁 保留    | ❌     |
-| CustomConnectionLine（接続中の線）       | 🔁 保留    | ❌     |
-| dragHandle によるドラッグ移動の維持      | 🔁 保留    | ❌     |
-| 既存エッジの floating 移行（persist v2） | 🔁 保留    | ❌     |
-
 > ⚠️ RelationNode の SVG ひし形と Handle の干渉により実装を中断。再設計が必要。
+
+| 機能                                | ステータス | テスト |
+| ----------------------------------- | ---------- | ------ |
+| ノード全体をドラッグして接続できる  | 🔁 保留    | ❌     |
+| FloatingEdge（境界から最短距離）    | 🔁 保留    | ❌     |
+| CustomConnectionLine（接続中の線）  | 🔁 保留    | ❌     |
+| dragHandle によるドラッグ移動の維持 | 🔁 保留    | ❌     |
 
 ---
 
 ## 将来実装（スペック未策定）
 
-| 機能                           | ステータス | 備考                                            |
-| ------------------------------ | ---------- | ----------------------------------------------- |
-| TypeQL 出力パネル              | ❌         | `generateTypeQL` は実装済み、表示 UI が未実装   |
-| isAbstract フラグの編集        | ❌         | Sidebar に未実装                                |
-| ファイルへの永続化（Tauri fs） | 🔁         | localStorage の限界超えた場合の候補             |
-| LLM API 接続                   | ❌         | NarrationPanel + LLMAssistant の backend 未実装 |
-| E2E テスト（Playwright）       | ❌         | 右クリック・ドラッグ操作の自動テスト            |
-| スキーマ vs データグラフの分離 | 🔁         | `ARCHITECTURE.md` に保留として記録済み          |
+| 機能                                           | ステータス | 備考                                            |
+| ---------------------------------------------- | ---------- | ----------------------------------------------- |
+| isAbstract フラグの編集                        | ❌         | Sidebar に未実装                                |
+| Attribute の value 型編集                      | ❌         | 現状 string 固定                                |
+| ファイルへの永続化（Tauri fs）                 | 🔁         | localStorage の限界を超えた場合の候補           |
+| LLM API 接続                                   | ❌         | NarrationPanel + LLMAssistant の backend 未実装 |
+| E2E テスト（Playwright）                       | ❌         | 右クリック・ドラッグ操作の自動テスト            |
+| スキーマ vs データグラフの分離                 | 🔁         | ARCHITECTURE.md に保留として記録済み            |
+| 型整備（Branded Types / Discriminated Unions） | ❌         | 別ブランチで実施予定                            |
