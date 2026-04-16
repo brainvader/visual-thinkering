@@ -38,7 +38,8 @@ src/
 ├── types/index.ts             # TypeDB 型定義
 ├── components/
 │   ├── GraphCanvas.tsx        # React Flow キャンバス・カスタムコンテキストメニュー
-│   ├── Sidebar.tsx            # ノード/エッジインスペクター
+│   ├── Sidebar.tsx            # Inspector/TypeQL の2タブ構成
+│   ├── TypeQLPanel.tsx        # TypeQL 出力・シンタックスハイライト・Copy・警告
 │   ├── NarrationPanel.tsx     # ナラティブ入力
 │   ├── LLMAssistant.tsx       # LLM 命令インターフェース
 │   ├── nodes/                 # カスタムノード
@@ -120,7 +121,17 @@ interface TypeDBEdgeData {
 
 **NodeProps の型引数:** `NodeProps<Node<TypeDBNodeData>>`（`Node` は `@xyflow/react` の `Node` を `FlowNode` として alias）
 
-### Custom Nodes
+### TypeQL 生成（lib/typeql.ts）
+
+`generateTypeQL(nodes, edges, options?)` でグラフから TypeQL を生成する。
+
+- **出力順**: Attribute → Entity → Relation（依存関係の解決）
+- **overload**: `{ includeWarnings: true }` を渡すと `{ typeql, warnings }` を返す
+- **警告対象**: ロール名未設定エッジ、TypeQL キーワードと同名のロール名
+
+### GraphCanvas の fitView
+
+localStorage 復元後は `useNodesInitialized()` でノード測定完了を検知してから `fitView()` を実行する。`fitView` prop では復元直後のサイズ未計測状態で実行されるため機能しない。
 
 各ノードの Handle パターン（上下左右 × source/target の8ソケット）:
 
