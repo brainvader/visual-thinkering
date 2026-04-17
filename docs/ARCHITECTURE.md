@@ -42,15 +42,18 @@ type TypeDBMetaType = "entity" | "relation" | "attribute";
 ## 4パネルレイアウトの設計意図
 
 ```
-┌──────────────┬─────────────────────────┬──────────────┐
-│              │                         │              │
-│  Narration   │      GraphCanvas        │   Sidebar    │
-│  （語り入力） │      （知識グラフ）      │  （Inspector）│
-│              ├─────────────────────────┤              │
-│              │     LLMAssistant        │              │
-└──────────────┴─────────────────────────┴──────────────┘
+┌────────────────────────────────────────────────────────┐
+│ AppHeader（ファイル名・保存ボタン）                     │
+├──────────────┬─────────────────────────┬───────────────┤
+│              │                         │               │
+│  Narration   │      GraphCanvas        │   Sidebar     │
+│  （語り入力） │      （知識グラフ）      │  （Inspector） │
+│              ├─────────────────────────┤               │
+│              │     LLMAssistant        │               │
+└──────────────┴─────────────────────────┴───────────────┘
 ```
 
+- **ヘッダー（AppHeader）**: ファイル名表示・保存操作
 - **左（Narration）**: 原材料。ユーザーの思考の原文
 - **中央上（GraphCanvas）**: 生成物。構造化された知識
 - **中央下（LLMAssistant）**: 変換器。語りからグラフへの橋渡し
@@ -75,6 +78,54 @@ LLM に命令を送る際、「現在のナラティブ」をコンテキスト�
 
 ---
 
+## データ永続化の設計
+
+### localStorage の役割（作業バッファ）
+
+Zustand の `persist` ミドルウェアにより、編集中のスキーマ（nodes / edges / narration）は `visual-thinkering-graph` キーへ自動的に書き込まれる。これはクラッシュ時の復元を含む「作業バッファ」として機能する。
+
+### ファイル保存・読み込みのフロー
+
+```
+アプリ起動
+    ↓
+localStorage に vt-save-path があるか？
+    ├─ Yes → そのパスの JSON を readTextFile → ストアに展開
+    └─ No  → resolveResource('resources/default.json') → ストアに展開
+
+編集中
+    → persist により localStorage へ自動同期（作業バッファ）
+
+保存（Ctrl+S / 保存ボタン）
+    ├─ vt-save-path あり → writeTextFile で上書き
+    └─ vt-save-path なし → save ダイアログ → パス記憶 → writeTextFile
+```
+
+### ファイルフォーマット（JSON）
+
+```json
+{
+  "version": 1,
+  "savedAt": "ISO8601",
+  "nodes": [...],
+  "edges": [...],
+  "narration": "..."
+}
+```
+
+localStorage の `persist` フォーマット（`{ state: {...}, version: N }`）とは意図的に分離している。前者はファイル交換用、後者は Zustand の内部キャッシュ用。
+
+### resources/default.json
+
+`src-tauri/resources/default.json` としてアプリに同梱するサンプル兼初期データ。`tauri.conf.json` の `bundle.resources` に登録することでビルド時にバンドルされる。`vt-save-path` が未設定の初回起動時に読み込まれる。
+
+### 将来の拡張（未実装）
+
+- **デフォルト保存先**: dev/build 環境を切り替えつつ `appDataDir` または `documentDir` を自動選択する仕組み（現在はダイアログのみ）
+- **プロジェクト管理**: 複数ファイルをプロジェクト単位で管理する画面（`docs/specs/project-management.md` 参照）
+
+---
+
 ## TypeQL 生成の現状と課題
 
 `generateTypeQL(nodes, edges)` は現在シンプルな文字列生成のみ。
@@ -82,7 +133,6 @@ LLM に命令を送る際、「現在のナラティブ」をコンテキスト�
 **現状の制約:**
 
 - `isAbstract` フラグを使った抽象型定義が未実装
-- Attribute の `owns` 定義が未実装
 - 循環参照（Relation が別の Relation に relates する）の検出がない
 - TypeQL の構文バリデーションなし
 
@@ -94,8 +144,8 @@ LLM に命令を送る際、「現在のナラティブ」をコンテキスト�
 
 詳細なスペックは `docs/specs/` に個別ファイルで管理する。
 
+- `docs/specs/project-management.md` — 複数プロジェクト管理
 - `docs/specs/llm-integration.md` — ナラティブからノード自動抽出
-- `docs/specs/typeql-export.md` — TypeQL ファイルへのエクスポート
 - `docs/specs/typedb-connection.md` — TypeDB サーバーへの直接接続
 - `docs/specs/schema-validation.md` — TypeQL 整合性チェック
 
@@ -114,12 +164,4 @@ LLM に命令を送る際、「現在のナラティブ」をコンテキスト�
 
 visual-thinkering は現在スキーマ設計に特化しているが、将来的にデータ入力・可視化も扱うかどうかが未決定。
 
-**選択肢:**
-
-| 方針                              | 内容                                | 備考                                   |
-| --------------------------------- | ----------------------------------- | -------------------------------------- |
-| A. スキーマのみ（現状）           | スキーマ設計に特化                  | シンプル                               |
-| B. スキーマ + データの2グラフ     | 2つのビューを切り替え               | 実装コスト大、ノード数が爆発する可能性 |
-| C. スキーマのみ、データは外部連携 | データ投入は TypeDB Studio に任せる | 役割分担が明確                         |
-
-**現時点の方針:** C を有力候補として保留。visual-thinkering は「ナラティブ → TypeQL スキーマ設計」という独自の価値に集中し、TypeDB Studio との分業を前提とする方向で検討中。
+**現時点の方針:** visual-thinkering は「ナラティブ → TypeQL スキーマ設計」という独自の価値に集中し、TypeDB Studio との分業を前提とする方向で検討中。

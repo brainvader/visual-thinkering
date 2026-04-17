@@ -18,19 +18,34 @@
 
 ---
 
+## ファイル保存・読み込み [`file-save.md`](specs/file-save.md)
+
+| 機能                                                       | ステータス | テスト |
+| ---------------------------------------------------------- | ---------- | ------ |
+| Tauri fs / dialog プラグイン導入                           | ✅         | ―      |
+| AppHeader（ファイル名表示・保存ボタン）                    | ✅         | ✅     |
+| Ctrl+S キーボードショートカット                            | ✅         | ⚠️     |
+| 初回保存：ダイアログでパス選択 → vt-save-path に記憶       | ✅         | ✅     |
+| 2回目以降：同パスへ上書き保存                              | ✅         | ✅     |
+| 起動時読み込み：vt-save-path あり → そのファイルを読む     | ✅         | ✅     |
+| 起動時読み込み：vt-save-path なし → resources/default.json | ✅         | ✅     |
+| 読み込み失敗時のフォールバック（ストア既存データを保持）   | ✅         | ✅     |
+| 保存成功時トースト通知（ファイルパス表示・2秒自動消去）    | ✅         | ✅     |
+| 保存失敗時トースト通知（エラー内容表示）                   | ✅         | ✅     |
+| resources/default.json（サンプル兼初期データ）同梱         | ✅         | ―      |
+
+---
+
 ## プロジェクト管理 [`project-management.md`](specs/project-management.md)
 
-| 機能                                                          | ステータス | テスト |
-| ------------------------------------------------------------- | ---------- | ------ |
-| react-router-dom (MemoryRouter) 導入                          | ❌         | ❌     |
-| 旧 localStorage データのマイグレーション（デフォルトPJ化）    | ❌         | ❌     |
-| projectStore（add / delete / update）                         | ❌         | ❌     |
-| ProjectListPage（カードグリッド表示）                         | ❌         | ❌     |
-| NewProjectDialog（名前・概要入力・バリデーション）            | ❌         | ❌     |
-| ProjectCard（クリックで遷移・削除ボタン）                     | ❌         | ❌     |
-| EditorPage ラッパー（既存エディタをプロジェクトIDでマウント） | ❌         | ❌     |
-| EditorHeader（プロジェクト名表示・一覧へ戻るボタン）          | ❌         | ❌     |
-| useSchemaStore の動的キー対応（vt-schema-{id}）               | ❌         | ❌     |
+| 機能                                                       | ステータス | テスト |
+| ---------------------------------------------------------- | ---------- | ------ |
+| react-router-dom (MemoryRouter) 導入                       | ❌         | ❌     |
+| projectStore（add / delete / update）                      | ❌         | ❌     |
+| ProjectListPage（カードグリッド表示）                      | ❌         | ❌     |
+| NewProjectDialog（名前・概要入力・バリデーション）         | ❌         | ❌     |
+| ProjectCard（クリックで遷移・削除ボタン）                  | ❌         | ❌     |
+| EditorPage ラッパー + EditorHeader（戻るボタン・PJ名表示） | ❌         | ❌     |
 
 ---
 
@@ -108,3 +123,15 @@
 | ロール名未設定エッジへの警告表示             | ✅         | ✅     |
 | TypeQL キーワードと同名ロール名への警告      | ✅         | ✅     |
 | コピーボタン                                 | ✅         | ✅     |
+
+---
+
+## 将来実装（スペック未策定）
+
+| 機能                                           | ステータス | 備考                                            |
+| ---------------------------------------------- | ---------- | ----------------------------------------------- |
+| isAbstract フラグの編集                        | ❌         | Sidebar に未実装                                |
+| LLM API 接続                                   | ❌         | NarrationPanel + LLMAssistant の backend 未実装 |
+| E2E テスト（Playwright）                       | ❌         | 右クリック・ドラッグ操作の自動テスト            |
+| スキーマ vs データグラフの分離                 | 🔁         | ARCHITECTURE.md に保留として記録済み            |
+| 型整備（Branded Types / Discriminated Unions） | ❌         | 別ブランチで実施予定                            |

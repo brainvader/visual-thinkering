@@ -1,0 +1,101 @@
+// src/hooks/useFileLoad.test.ts
+//
+// useFileLoad フックのテスト（Red → Green）
+// 起動時にファイルを読み込み、ストアに展開する動作を検証する
+
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { renderHook, act } from '@testing-library/react';
+import { useFileLoad } from './useFileLoad';
+import { useStore } from '@/store';
+
+// vi.mock はホイストされるため、ファクトリ内で変数を参照できない。
+// モックのデフォルト戻り値はファクトリ内で直接定義し、
+// テストごとの上書きは vi.mocked().mockResolvedValueOnce() で行う。
+const MOCK_FILE_JSON = JSON.stringify({
+    version: 1,
+    savedAt: '2026-04-17T00:00:00.000Z',
+    nodes: [
+        {
+            id: 'node-1',
+            type: 'entity',
+            position: { x: 0, y: 0 },
+            data: { label: 'Person', typeDBType: 'entity', isAbstract: false },
+        },
+    ],
+    edges: [],
+    narration: 'テストナラティブ',
+});
+
+// Tauri プラグインをモック（ファクトリ内はリテラルのみ使用）
+vi.mock('@tauri-apps/plugin-fs', () => ({
+    readTextFile: vi.fn(),
+}));
+
+vi.mock('@tauri-apps/api/path', () => ({
+    resolveResource: vi.fn(),
+}));
+
+const { readTextFile } = await import('@tauri-apps/plugin-fs');
+const { resolveResource } = await import('@tauri-apps/api/path');
+
+beforeEach(() => {
+    localStorage.clear();
+    useStore.setState({ nodes: [], edges: [], narration: '' });
+    vi.clearAllMocks();
+    // clearAllMocks でリセットされるため、毎回デフォルト戻り値を再設定する
+    vi.mocked(readTextFile).mockResolvedValue(MOCK_FILE_JSON);
+    vi.mocked(resolveResource).mockResolvedValue('/mock/resources/default.json');
+});
+
+describe('useFileLoad: vt-save-path なし（初回起動）', () => {
+    it('resources/default.json を読み込んでストアに展開すること', async () => {
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => {
+            await result.current.load();
+        });
+
+        expect(resolveResource).toHaveBeenCalledWith('resources/default.json');
+        expect(readTextFile).toHaveBeenCalledWith('/mock/resources/default.json');
+        expect(useStore.getState().nodes).toHaveLength(1);
+        expect(useStore.getState().narration).toBe('テストナラティブ');
+    });
+});
+
+describe('useFileLoad: vt-save-path あり（2回目以降）', () => {
+    it('保存済みパスのファイルを読み込むこと', async () => {
+        localStorage.setItem('vt-save-path', '/user/saved/schema.json');
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => {
+            await result.current.load();
+        });
+
+        // resolveResource は呼ばれない
+        expect(resolveResource).not.toHaveBeenCalled();
+        expect(readTextFile).toHaveBeenCalledWith('/user/saved/schema.json');
+        expect(useStore.getState().nodes).toHaveLength(1);
+    });
+});
+
+describe('useFileLoad: ファイル読み込み失敗', () => {
+    it('読み込みに失敗してもストアの既存データが壊れないこと', async () => {
+        // 読み込み失敗をシミュレート
+        vi.mocked(readTextFile).mockRejectedValueOnce(new Error('File not found'));
+        useStore.setState({
+            nodes: [{ id: 'existing', type: 'entity', position: { x: 0, y: 0 }, data: { label: 'Existing', typeDBType: 'entity', isAbstract: false } }],
+            edges: [],
+            narration: '',
+        });
+
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => {
+            await result.current.load();
+        });
+
+        // 既存データが保持されていること
+        expect(useStore.getState().nodes).toHaveLength(1);
+        expect(useStore.getState().nodes[0].id).toBe('existing');
+    });
+});
