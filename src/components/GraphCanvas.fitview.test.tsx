@@ -77,6 +77,9 @@ const defaultProps = {
     deleteEdge: vi.fn(),
     addNode: vi.fn().mockReturnValue('new-id'),
     onNodeAdded: vi.fn(),
+    // viewport / setViewport を追加
+    viewport: { x: 0, y: 0, zoom: 1 },
+    setViewport: vi.fn(),
 };
 
 beforeEach(() => {
