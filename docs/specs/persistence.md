@@ -70,6 +70,12 @@ export const useStore = create<GraphState>()(
 
 ---
 
+### fitView の起動時挙動
+
+復元後のビューポートは `useNodesInitialized()` + `nodes.length > 0` の両条件が揃ったときのみ実行される。ノードが0件の状態では実行しない（フラグが誤ってセットされるのを防ぐ）。
+
+---
+
 ## 考慮事項
 
 - **localStorage の容量制限**: ブラウザにより 5〜10MB。大規模グラフでは将来的に Tauri の `fs` プラグインへの移行を検討する（`docs/specs/persistence-file.md` として切り出す）

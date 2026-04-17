@@ -33,16 +33,16 @@
 
 ## カスタムノード [`custom-nodes.md`](specs/custom-nodes.md)
 
-| 機能                                                     | ステータス | テスト |
-| -------------------------------------------------------- | ---------- | ------ |
-| EntityNode（角丸矩形・青系）                             | ✅         | ✅     |
-| RelationNode（SVGひし形・緑系）                          | ✅         | ✅     |
-| AttributeNode（楕円・橙系）                              | ✅         | ✅     |
-| 選択時のハイライト表示                                   | ✅         | ✅     |
-| 全方向ソケット（上下左右 × source/target）               | ✅         | ⚠️     |
-| コンテキストメニュー（ノード上・キャンバス上・エッジ上） | ✅         | ⚠️     |
-| localStorage 復元後の fitView（useNodesInitialized）     | ✅         | ⚠️     |
-| Easy Connect（ノード全体をHandleにする）                 | 🔁 保留    | ❌     |
+| 機能                                                                    | ステータス | テスト |
+| ----------------------------------------------------------------------- | ---------- | ------ |
+| EntityNode（角丸矩形・青系）                                            | ✅         | ✅     |
+| RelationNode（SVGひし形・緑系）                                         | ✅         | ✅     |
+| AttributeNode（楕円・橙系）                                             | ✅         | ✅     |
+| 選択時のハイライト表示                                                  | ✅         | ✅     |
+| 全方向ソケット（上下左右 × source/target）                              | ✅         | ⚠️     |
+| コンテキストメニュー（ノード上・キャンバス上・エッジ上）                | ✅         | ⚠️     |
+| localStorage 復元後の fitView（useNodesInitialized + nodes.length > 0） | ✅         | ✅     |
+| Easy Connect（ノード全体をHandleにする）                                | 🔁 保留    | ❌     |
 
 ---
 

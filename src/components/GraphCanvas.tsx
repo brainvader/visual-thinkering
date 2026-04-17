@@ -82,11 +82,13 @@ function GraphCanvasInner({
     // localStorage から復元した直後は measured が undefined のため
     // fitView prop だけでは正しく中央寄せされない
     React.useEffect(() => {
-        if (nodesInitialized && !hasFitView.current) {
+        // ノード0件のとき nodesInitialized が即 true になる場合があるため
+        // nodes.length > 0 を条件に加えてフラグが早期にセットされるのを防ぐ
+        if (nodesInitialized && nodes.length > 0 && !hasFitView.current) {
             fitView({ padding: 0.5 });
             hasFitView.current = true;
         }
-    }, [nodesInitialized, fitView]);
+    }, [nodesInitialized, nodes.length, fitView]);
 
     // owns 関係のバウンディングボックス（フロー座標系）
     const ownershipBounds = useOwnershipBounds(selectedNode, nodes, edges);
