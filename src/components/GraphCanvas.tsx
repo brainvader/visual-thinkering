@@ -18,6 +18,7 @@ import {
     useReactFlow,
     useViewport,
     useNodesInitialized,
+    Viewport,
 } from '@xyflow/react';
 import { Trash2, ExternalLink, Box, Diamond, CircleDot, PencilLine } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -41,6 +42,8 @@ interface GraphCanvasProps {
     deleteEdge?: (id: string) => void;
     addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
     onNodeAdded?: (nodeId: string) => void;
+    viewport: Viewport;
+    setViewport: (vp: Viewport) => void;
 }
 
 // コンテキストメニューの状態
@@ -68,10 +71,12 @@ function GraphCanvasInner({
     deleteEdge,
     addNode,
     onNodeAdded,
+    viewport,
+    setViewport,
 }: GraphCanvasProps) {
     const { screenToFlowPosition, fitView } = useReactFlow();
-    // useViewport でリアクティブに viewport を取得する
-    const viewport = useViewport();
+    // useViewport でリアクティブに現在の表示状態を取得する（ownership ハイライトの座標計算に使用）
+    const flowViewport = useViewport();
     // ノードのサイズ測定が完了したかどうかを監視
     const nodesInitialized = useNodesInitialized();
     const menuRef = useRef<HTMLDivElement>(null);
@@ -81,14 +86,17 @@ function GraphCanvasInner({
     // ノードの測定完了後に fitView を実行する
     // localStorage から復元した直後は measured が undefined のため
     // fitView prop だけでは正しく中央寄せされない
+    // viewport がデフォルト値か（初回起動かどうかの判定）
+    const isDefaultViewport =
+        viewport.x === 0 && viewport.y === 0 && viewport.zoom === 1;
+
     React.useEffect(() => {
-        // ノード0件のとき nodesInitialized が即 true になる場合があるため
-        // nodes.length > 0 を条件に加えてフラグが早期にセットされるのを防ぐ
-        if (nodesInitialized && nodes.length > 0 && !hasFitView.current) {
+        // 初回起動（viewport 未保存）かつノードありのときのみ fitView を実行する
+        if (nodesInitialized && nodes.length > 0 && isDefaultViewport && !hasFitView.current) {
             fitView({ padding: 0.5 });
             hasFitView.current = true;
         }
-    }, [nodesInitialized, nodes.length, fitView]);
+    }, [nodesInitialized, nodes.length, isDefaultViewport, fitView]);
 
     // owns 関係のバウンディングボックス（フロー座標系）
     const ownershipBounds = useOwnershipBounds(selectedNode, nodes, edges);
@@ -214,6 +222,8 @@ function GraphCanvasInner({
                 isValidConnection={(connection) =>
                     isValidTypeDBConnection(connection, nodes)
                 }
+                defaultViewport={viewport}
+                onMoveEnd={(_event, vp) => setViewport(vp)}
             >
                 <Background variant={BackgroundVariant.Dots} color="#e2e2e7" gap={20} />
                 <Controls />
@@ -233,10 +243,10 @@ function GraphCanvasInner({
                     フロー座標系で描画するため ReactFlow の子に配置する
                     pointerEvents: none でクリックを透過させる */}
                 {ownershipBounds && (() => {
-                    const x = ownershipBounds.x * viewport.zoom + viewport.x;
-                    const y = ownershipBounds.y * viewport.zoom + viewport.y;
-                    const w = ownershipBounds.width * viewport.zoom;
-                    const h = ownershipBounds.height * viewport.zoom;
+                    const x = ownershipBounds.x * flowViewport.zoom + flowViewport.x;
+                    const y = ownershipBounds.y * flowViewport.zoom + flowViewport.y;
+                    const w = ownershipBounds.width * flowViewport.zoom;
+                    const h = ownershipBounds.height * flowViewport.zoom;
                     return (
                         <div
                             style={{
