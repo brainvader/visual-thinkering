@@ -234,3 +234,29 @@ describe('Sidebar: Attribute value 型セレクト', () => {
         expect(screen.getByRole('combobox', { name: /value type/i })).toHaveTextContent('datetime');
     });
 });
+
+describe('Sidebar: タブ切り替え', () => {
+    it('デフォルトで Inspector タブが表示されること', () => {
+        render(<Sidebar {...defaultProps} />);
+        // Inspector タブのトリガーが存在する
+        expect(screen.getByRole('tab', { name: /inspector/i })).toBeInTheDocument();
+    });
+
+    it('TypeQL タブをクリックすると TypeQL パネルが表示されること', async () => {
+        render(<Sidebar {...defaultProps} />);
+        await userEvent.click(screen.getByRole('tab', { name: /typeql/i }));
+        // TypeQLPanel のヘッダー span（Copy ボタンの隣）が表示される
+        // CSS で uppercase 表示されるが DOM テキストは 'TypeQL'
+        const header = screen.getAllByText('TypeQL');
+        // タブトリガー + パネルヘッダーの両方が含まれるので 2 つ以上存在する
+        expect(header.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('TypeQL タブ → Inspector タブに戻せること', async () => {
+        render(<Sidebar {...defaultProps} nodes={[mockNode]} selectedNode={mockNode} />);
+        await userEvent.click(screen.getByRole('tab', { name: /typeql/i }));
+        await userEvent.click(screen.getByRole('tab', { name: /inspector/i }));
+        // Inspector の内容（ノードラベル）が再表示される
+        expect(screen.getByDisplayValue('Person')).toBeInTheDocument();
+    });
+});
