@@ -119,22 +119,6 @@ useCloseGuard({
 
 ---
 
-## 必要な Tauri 設定
-
-`src-tauri/tauri.conf.json` の windows 設定に追加：
-
-```json
-"app": {
-    "windows": [
-        {
-            "closeRequestedEvent": true
-        }
-    ]
-}
-```
-
----
-
 ## テスト方針（Red → Green）
 
 ### `src/store.isDirty.test.ts`（新規）
