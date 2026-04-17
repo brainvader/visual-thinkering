@@ -99,3 +99,24 @@ describe('useFileLoad: ファイル読み込み失敗', () => {
         expect(useStore.getState().nodes[0].id).toBe('existing');
     });
 });
+
+describe('useFileLoad: markClean 連携', () => {
+    it('読み込み成功後に isDirty が false になること', async () => {
+        useStore.getState().markDirty(); // 事前に dirty にする
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => { await result.current.load(); });
+
+        expect(useStore.getState().isDirty).toBe(false);
+    });
+
+    it('読み込み失敗時は isDirty が変化しないこと', async () => {
+        useStore.getState().markDirty();
+        vi.mocked(readTextFile).mockRejectedValueOnce(new Error('File not found'));
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => { await result.current.load(); });
+
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+});
