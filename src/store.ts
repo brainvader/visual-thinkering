@@ -66,6 +66,7 @@ export const useStore = create<GraphState>()(
                     edges: addEdge(
                         {
                             ...connection,
+                            type: 'role',
                             // 接続方向が分かるよう矢印マーカーを付与する
                             markerEnd: {
                                 type: MarkerType.ArrowClosed,
