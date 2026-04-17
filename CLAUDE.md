@@ -133,6 +133,8 @@ interface TypeDBEdgeData {
 
 localStorage 復元後は `useNodesInitialized()` でノード測定完了を検知してから `fitView()` を実行する。`fitView` prop では復元直後のサイズ未計測状態で実行されるため機能しない。
 
+**条件:** `nodesInitialized && nodes.length > 0` の両方が true になったとき1回のみ実行する。ノード0件のとき `nodesInitialized` が即 true になるケースでフラグが早期にセットされるのを防ぐため `nodes.length > 0` が必須。
+
 各ノードの Handle パターン（上下左右 × source/target の8ソケット）:
 
 ```tsx
