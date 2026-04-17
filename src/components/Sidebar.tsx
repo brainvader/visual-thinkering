@@ -51,6 +51,12 @@ export const Sidebar = ({
     nodes,
     edges,
 }: SidebarProps) => {
+    // selectedNode は App.tsx のローカル state のスナップショットなので stale になりうる。
+    // store 経由で更新された最新データは nodes 配列から引き直す。
+    const currentNode = selectedNode
+        ? (nodes.find((n) => n.id === selectedNode.id) ?? selectedNode)
+        : null;
+
     // ノードラベル編集用ローカル state
     const [editingLabel, setEditingLabel] = useState('');
     const originalLabelRef = useRef('');
@@ -154,13 +160,13 @@ export const Sidebar = ({
                             </div>
 
                             {/* Attribute ノード選択時のみ value 型セレクトを表示 */}
-                            {selectedNode.data.typeDBType === 'attribute' && (
+                            {currentNode?.data.typeDBType === 'attribute' && (
                                 <div className="flex flex-col gap-1.5">
                                     <Label htmlFor="value-type" className="text-xs font-medium">
                                         Value Type
                                     </Label>
                                     <Select
-                                        value={selectedNode.data.valueType ?? 'string'}
+                                        value={currentNode?.data.valueType ?? 'string'}
                                         onValueChange={handleValueTypeChange}
                                     >
                                         <SelectTrigger
@@ -188,7 +194,7 @@ export const Sidebar = ({
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-xs font-medium text-muted-foreground">Type</span>
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted w-fit capitalize">
-                                    {selectedNode.data.typeDBType}
+                                    {currentNode?.data.typeDBType}
                                 </span>
                             </div>
                             <Button
