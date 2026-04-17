@@ -1,6 +1,6 @@
 # STATUS.md — 実装状況
 
-> 最終更新: 2026-04-16
+> 最終更新: 2026-04-17
 > 粒度: 機能単位（ユーザーが体験できる単位）
 > 詳細な仕様・テスト方針は各 `docs/specs/` ファイルを参照
 
@@ -97,17 +97,28 @@
 
 ## TypeQL 出力パネル [`typeql-panel.md`](specs/typeql-panel.md)
 
-| 機能                                           | ステータス | テスト |
-| ---------------------------------------------- | ---------- | ------ |
-| Attribute → Entity → Relation の順で定義を生成 | ✅         | ✅     |
-| owns（Entity/Relation → Attribute）の生成      | ✅         | ✅     |
-| plays（Entity → Relation）の生成               | ✅         | ✅     |
-| relates（Relation のロール）の生成             | ✅         | ✅     |
-| ロール名未設定エッジの警告表示                 | ✅         | ✅     |
-| TypeQL キーワードと同名ロール名の警告          | ✅         | ✅     |
-| シンタックスハイライト                         | ✅         | ⚠️     |
-| Copy ボタン（クリップボードコピー）            | ✅         | ✅     |
-| Sidebar の Inspector / TypeQL タブ化           | ✅         | ⚠️     |
+| 機能                                                  | ステータス | テスト |
+| ----------------------------------------------------- | ---------- | ------ |
+| Attribute → Entity → Relation の順で定義を生成        | ✅         | ✅     |
+| owns（Entity/Relation → Attribute）の生成             | ✅         | ✅     |
+| plays（Entity → Relation）の生成                      | ✅         | ✅     |
+| relates（Relation のロール）の生成                    | ✅         | ✅     |
+| Attribute の value 型出力（valueType フィールド参照） | ✅         | ✅     |
+| ロール名未設定エッジの警告表示                        | ✅         | ✅     |
+| TypeQL キーワードと同名ロール名の警告                 | ✅         | ✅     |
+| シンタックスハイライト                                | ✅         | ⚠️     |
+| Copy ボタン（クリップボードコピー）                   | ✅         | ✅     |
+| Sidebar の Inspector / TypeQL タブ化                  | ✅         | ⚠️     |
+
+---
+
+## Sidebar インスペクター
+
+| 機能                                                                  | ステータス | テスト |
+| --------------------------------------------------------------------- | ---------- | ------ |
+| Attribute ノード選択時に value 型セレクト表示                         | ✅         | ✅     |
+| value 型変更の即時反映（string / long / double / boolean / datetime） | ✅         | ✅     |
+| 旧データ（valueType なし）の後方互換（string フォールバック）         | ✅         | ✅     |
 
 ---
 
@@ -129,7 +140,6 @@
 | 機能                                           | ステータス | 備考                                            |
 | ---------------------------------------------- | ---------- | ----------------------------------------------- |
 | isAbstract フラグの編集                        | ❌         | Sidebar に未実装                                |
-| Attribute の value 型編集                      | ❌         | 現状 string 固定                                |
 | ファイルへの永続化（Tauri fs）                 | 🔁         | localStorage の限界を超えた場合の候補           |
 | LLM API 接続                                   | ❌         | NarrationPanel + LLMAssistant の backend 未実装 |
 | E2E テスト（Playwright）                       | ❌         | 右クリック・ドラッグ操作の自動テスト            |
