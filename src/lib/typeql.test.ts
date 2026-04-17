@@ -13,10 +13,12 @@ import type { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 const makeNode = (
     id: string,
     label: string,
-    typeDBType: TypeDBNodeData['typeDBType']
+    typeDBType: TypeDBNodeData['typeDBType'],
+    // 追加データを受け取れるようにする（valueType などのテストに使用）
+    extra: Partial<TypeDBNodeData> = {}
 ): FlowNode<TypeDBNodeData> => ({
     id,
-    data: { label, typeDBType, isAbstract: false },
+    data: { label, typeDBType, isAbstract: false, ...extra },
     position: { x: 0, y: 0 },
     type: typeDBType,
 });
@@ -132,9 +134,48 @@ describe('generateTypeQL: Attribute 定義', () => {
         expect(result).toContain('name sub attribute');
     });
 
-    it('Attribute に value string がデフォルトで付くこと', () => {
+    it('valueType 未指定のとき value string がデフォルトで付くこと', () => {
         const result = generateTypeQL([name], []);
         expect(result).toContain('value string');
+    });
+
+    it('valueType が long のとき value long が出力されること', () => {
+        const longAttr = makeNode('n10', 'age', 'attribute', { valueType: 'long' });
+        const result = generateTypeQL([longAttr], []);
+        expect(result).toContain('value long');
+        expect(result).not.toContain('value string');
+    });
+
+    it('valueType が double のとき value double が出力されること', () => {
+        const doubleAttr = makeNode('n11', 'score', 'attribute', { valueType: 'double' });
+        const result = generateTypeQL([doubleAttr], []);
+        expect(result).toContain('value double');
+    });
+
+    it('valueType が boolean のとき value boolean が出力されること', () => {
+        const boolAttr = makeNode('n12', 'is-active', 'attribute', { valueType: 'boolean' });
+        const result = generateTypeQL([boolAttr], []);
+        expect(result).toContain('value boolean');
+    });
+
+    it('valueType が datetime のとき value datetime が出力されること', () => {
+        const dtAttr = makeNode('n13', 'created-at', 'attribute', { valueType: 'datetime' });
+        const result = generateTypeQL([dtAttr], []);
+        expect(result).toContain('value datetime');
+    });
+
+    it('valueType が string のとき value string が出力されること', () => {
+        const strAttr = makeNode('n14', 'title', 'attribute', { valueType: 'string' });
+        const result = generateTypeQL([strAttr], []);
+        expect(result).toContain('value string');
+    });
+
+    it('複数の Attribute が異なる value 型を持てること', () => {
+        const longAttr = makeNode('n10', 'age', 'attribute', { valueType: 'long' });
+        const dtAttr = makeNode('n11', 'birthday', 'attribute', { valueType: 'datetime' });
+        const result = generateTypeQL([longAttr, dtAttr], []);
+        expect(result).toContain('age sub attribute, value long;');
+        expect(result).toContain('birthday sub attribute, value datetime;');
     });
 });
 
@@ -177,7 +218,7 @@ describe('generateTypeQL: 警告情報', () => {
             [edge],
             { includeWarnings: true }
         );
-        // 警告はあるが TypeQL は生成される（Employment は大文字始まり）
+        // 警告はあるが TypeQL は生成される
         expect(typeql).toContain('plays Employment:plays');
     });
 });

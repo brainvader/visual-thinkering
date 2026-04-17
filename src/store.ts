@@ -15,7 +15,7 @@ import {
     applyNodeChanges,
     applyEdgeChanges,
 } from '@xyflow/react';
-import { TypeDBNodeData, TypeDBEdgeData, TypeDBMetaType } from '@/types';
+import { TypeDBNodeData, TypeDBEdgeData, TypeDBMetaType, AttributeValueType } from '@/types';
 
 interface GraphState {
     nodes: Node<TypeDBNodeData>[];
@@ -28,6 +28,8 @@ interface GraphState {
     deleteNode: (nodeId: string) => void;
     addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
     updateNodeLabel: (nodeId: string, label: string) => void;
+    // Attribute ノードの value 型を更新する
+    updateNodeValueType: (nodeId: string, valueType: AttributeValueType) => void;
     setNarration: (text: string) => void;
     updateEdgeRole: (edgeId: string, role: string) => void;
     deleteEdge: (edgeId: string) => void;
@@ -72,10 +74,11 @@ export const useStore = create<GraphState>()(
                 });
             },
 
-            setNodes: (nodes: Node<TypeDBNodeData>[]) => set({ nodes }),
+            setNodes: (nodes) => set({ nodes }),
 
-            deleteNode: (nodeId: string) => {
+            deleteNode: (nodeId) => {
                 set({
+                    // 指定ノードと、そのノードに接続するエッジを同時に削除する
                     nodes: get().nodes.filter((n) => n.id !== nodeId),
                     edges: get().edges.filter(
                         (e) => e.source !== nodeId && e.target !== nodeId
@@ -83,19 +86,20 @@ export const useStore = create<GraphState>()(
                 });
             },
 
-            addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => {
+            addNode: (type, position) => {
+                const id = crypto.randomUUID();
                 const label = type.charAt(0).toUpperCase() + type.slice(1);
                 const newNode: Node<TypeDBNodeData> = {
-                    id: crypto.randomUUID(),
+                    id,
                     data: { label, typeDBType: type, isAbstract: false },
                     position,
                     type,
                 };
                 set({ nodes: [...get().nodes, newNode] });
-                return newNode.id;
+                return id;
             },
 
-            updateNodeLabel: (nodeId: string, label: string) => {
+            updateNodeLabel: (nodeId, label) => {
                 set({
                     nodes: get().nodes.map((n) =>
                         n.id === nodeId
@@ -105,21 +109,31 @@ export const useStore = create<GraphState>()(
                 });
             },
 
-            setNarration: (text: string) => set({ narration: text }),
+            // Attribute ノードの value 型を更新する
+            // 即時反映（Enter 確定不要）: ドロップダウン選択 = 意図の確定
+            updateNodeValueType: (nodeId, valueType) => {
+                set({
+                    nodes: get().nodes.map((n) =>
+                        n.id === nodeId
+                            ? { ...n, data: { ...n.data, valueType } }
+                            : n
+                    ),
+                });
+            },
 
-            // エッジのロール名を更新する
-            updateEdgeRole: (edgeId: string, role: string) => {
+            setNarration: (text) => set({ narration: text }),
+
+            updateEdgeRole: (edgeId, role) => {
                 set({
                     edges: get().edges.map((e) =>
                         e.id === edgeId
-                            ? { ...e, data: { ...e.data, role }, label: role }
+                            ? { ...e, data: { ...e.data, role } }
                             : e
                     ),
                 });
             },
 
-            // エッジを削除する（接続先ノードは残る）
-            deleteEdge: (edgeId: string) => {
+            deleteEdge: (edgeId) => {
                 set({
                     edges: get().edges.filter((e) => e.id !== edgeId),
                 });
@@ -127,8 +141,9 @@ export const useStore = create<GraphState>()(
         }),
         {
             name: 'visual-thinkering-graph',
+            version: 2,
             storage: createJSONStorage(() => localStorage),
-            version: 1,
+            // 関数はシリアライズ不可なので除外する
             partialize: (state) => ({
                 nodes: state.nodes,
                 edges: state.edges,
