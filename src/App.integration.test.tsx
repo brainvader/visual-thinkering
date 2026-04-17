@@ -33,6 +33,13 @@ vi.mock('@/components/ui/resizable', () => ({
     ResizableHandle: () => null,
 }));
 
+vi.mock('@tauri-apps/api/window', () => ({
+    getCurrentWindow: () => ({
+        onCloseRequested: vi.fn(() => Promise.resolve(() => { })),
+        close: vi.fn(),
+    }),
+}));
+
 // -----------------------------------------------
 // GraphCanvas モック
 // テスト内から onNodeClick / onNodeAdded / deleteNode を

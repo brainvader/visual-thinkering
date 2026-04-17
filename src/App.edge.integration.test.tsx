@@ -16,16 +16,26 @@ vi.mock('react-resizable-panels', () => ({
     Panel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     PanelResizeHandle: () => null,
 }));
+
 vi.mock('@/components/ui/resizable', () => ({
     ResizablePanelGroup: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     ResizablePanel: ({ children }: { children: React.ReactNode }) => <div>{children}</div>,
     ResizableHandle: () => null,
 }));
+
 vi.mock('./components/NarrationPanel', () => ({
     NarrationPanel: () => <div data-testid="narration-panel-mock" />,
 }));
+
 vi.mock('./components/LLMAssistant', () => ({
     LLMAssistant: () => <div data-testid="llm-assistant-mock" />,
+}));
+
+vi.mock('@tauri-apps/api/window', () => ({
+    getCurrentWindow: () => ({
+        onCloseRequested: vi.fn(() => Promise.resolve(() => { })),
+        close: vi.fn(),
+    }),
 }));
 
 // GraphCanvas モック — onEdgeClick も追加でキャプチャ
