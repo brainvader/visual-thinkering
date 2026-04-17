@@ -149,6 +149,18 @@ vt-save-path あり → 上書き保存 → toast.success
 "dialog:allow-save"
 ```
 
+### isDirty フラグ
+
+編集操作で `true`、保存・読み込み成功で `false` にリセットされる。`partialize` の対象外（localStorage に保存されない）。
+
+| アクション                               | 効果                             |
+| ---------------------------------------- | -------------------------------- |
+| nodes/edges/narration の全変更アクション | `markDirty()` → `isDirty: true`  |
+| `useFileSave.save()` 成功時              | `markClean()` → `isDirty: false` |
+| `useFileLoad.load()` 完了時              | `markClean()` → `isDirty: false` |
+
+`useCloseGuard` が `isDirty=true` のとき `onCloseRequested` を止め、`UnsavedDialog` を表示する。
+
 ## State
 
 ```typescript
