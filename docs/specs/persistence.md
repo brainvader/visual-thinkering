@@ -131,6 +131,18 @@ tauri::Builder::default()
 
 ---
 
+### isDirty フラグ
+
+| フィールド  | 型           | 説明                                             |
+| ----------- | ------------ | ------------------------------------------------ |
+| `isDirty`   | `boolean`    | 最後の保存・読み込み以降に変更があるか           |
+| `markDirty` | `() => void` | nodes/edges/narration の変更アクション末尾で呼ぶ |
+| `markClean` | `() => void` | save() / load() 成功時に呼ぶ                     |
+
+`isDirty` は `partialize` の対象外（localStorage に保存されない）。
+
+---
+
 ## テスト方針
 
 Tauri API はブラウザ環境で動作しないため `vi.mock` で差し替える。`vi.mock` はホイストされるため、ファクトリ内では変数を参照できない点に注意（`beforeEach` でモックの戻り値を設定する）。

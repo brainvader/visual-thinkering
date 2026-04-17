@@ -33,6 +33,26 @@ vi.mock('@/components/ui/resizable', () => ({
     ResizableHandle: () => null,
 }));
 
+vi.mock('@tauri-apps/api/window', () => ({
+    getCurrentWindow: () => ({
+        onCloseRequested: vi.fn(() => Promise.resolve(() => { })),
+        close: vi.fn(),
+    }),
+}));
+
+vi.mock('./components/UnsavedDialog', () => ({
+    UnsavedDialog: ({ open }: { open: boolean }) =>
+        open ? <div>未保存の変更があります</div> : null,
+}));
+
+let capturedCloseGuard: { onRequestClose: () => void } | null = null;
+
+vi.mock('./hooks/useCloseGuard', () => ({
+    useCloseGuard: (options: { onRequestClose: () => void }) => {
+        capturedCloseGuard = options;
+    },
+}));
+
 // -----------------------------------------------
 // GraphCanvas モック
 // テスト内から onNodeClick / onNodeAdded / deleteNode を
@@ -232,5 +252,19 @@ describe('App: Sidebar からのラベル編集', () => {
         expect(screen.getByText(/select a node/i)).toBeInTheDocument();
         // ストアからも消える
         expect(useStore.getState().nodes).toHaveLength(0);
+    });
+});
+
+describe('App: 未保存確認ダイアログ', () => {
+    it('isDirty=true のとき closeDialog が開くこと', async () => {
+        useStore.getState().markDirty();
+        render(<App />);
+
+        // useCloseGuard の onRequestClose を直接呼び出す
+        await act(async () => {
+            capturedCloseGuard?.onRequestClose();
+        });
+
+        expect(screen.getByText('未保存の変更があります')).toBeInTheDocument();
     });
 });

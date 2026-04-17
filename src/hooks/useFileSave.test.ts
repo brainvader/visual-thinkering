@@ -129,3 +129,35 @@ describe('useFileSave: 保存内容の検証', () => {
         expect(parsed.savedAt).toBeDefined();
     });
 });
+
+describe('useFileSave: markClean 連携', () => {
+    it('保存成功後に isDirty が false になること', async () => {
+        useStore.getState().markDirty(); // 事前に dirty にする
+        const { result } = renderHook(() => useFileSave());
+
+        await act(async () => { await result.current.save(); });
+
+        expect(useStore.getState().isDirty).toBe(false);
+    });
+
+    it('ダイアログキャンセル時は isDirty が変化しないこと', async () => {
+        useStore.getState().markDirty();
+        vi.mocked(dialogSave).mockResolvedValueOnce(null);
+        const { result } = renderHook(() => useFileSave());
+
+        await act(async () => { await result.current.save(); });
+
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+
+    it('保存失敗時は isDirty が変化しないこと', async () => {
+        useStore.getState().markDirty();
+        vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+        localStorage.setItem('vt-save-path', '/existing/path/schema.json');
+        const { result } = renderHook(() => useFileSave());
+
+        await act(async () => { await result.current.save(); });
+
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+});

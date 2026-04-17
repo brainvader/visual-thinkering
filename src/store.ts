@@ -2,11 +2,9 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import {
-    Connection,
     Edge,
     EdgeChange,
     Node,
-    NodeChange,
     MarkerType,
     Viewport,
     addEdge,
@@ -36,6 +34,9 @@ interface GraphState {
     setViewport: (viewport: Viewport) => void;
     updateEdgeRole: (edgeId: string, role: string) => void;
     deleteEdge: (edgeId: string) => void;
+    isDirty: boolean;
+    markDirty: () => void;
+    markClean: () => void;
 }
 
 export const useStore = create<GraphState>()(
@@ -53,98 +54,70 @@ export const useStore = create<GraphState>()(
             narration: '',
             viewport: { x: 0, y: 0, zoom: 1 },
 
-            onNodesChange: (changes: NodeChange<Node<TypeDBNodeData>>[]) => {
+            onNodesChange: (changes) => {
                 set({ nodes: applyNodeChanges(changes, get().nodes) });
+                get().markDirty();
             },
 
             onEdgesChange: (changes: EdgeChange<Edge<TypeDBEdgeData>>[]) => {
                 set({ edges: applyEdgeChanges(changes, get().edges) });
             },
 
-            onConnect: (connection: Connection) => {
-                set({
-                    edges: addEdge(
-                        {
-                            ...connection,
-                            type: 'role',
-                            // 接続方向が分かるよう矢印マーカーを付与する
-                            markerEnd: {
-                                type: MarkerType.ArrowClosed,
-                                width: 20,
-                                height: 20,
-                            },
-                        },
-                        get().edges
-                    ),
-                });
+            onConnect: (connection) => {
+                set({ edges: addEdge({ ...connection, type: 'role', markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 } }, get().edges) });
+                get().markDirty();
             },
 
             setNodes: (nodes) => set({ nodes }),
 
             deleteNode: (nodeId) => {
                 set({
-                    // 指定ノードと、そのノードに接続するエッジを同時に削除する
                     nodes: get().nodes.filter((n) => n.id !== nodeId),
-                    edges: get().edges.filter(
-                        (e) => e.source !== nodeId && e.target !== nodeId
-                    ),
+                    edges: get().edges.filter((e) => e.source !== nodeId && e.target !== nodeId),
                 });
+                get().markDirty();
             },
 
             addNode: (type, position) => {
                 const id = crypto.randomUUID();
                 const label = type.charAt(0).toUpperCase() + type.slice(1);
-                const newNode: Node<TypeDBNodeData> = {
-                    id,
-                    data: { label, typeDBType: type, isAbstract: false },
-                    position,
-                    type,
-                };
-                set({ nodes: [...get().nodes, newNode] });
+                set({ nodes: [...get().nodes, { id, data: { label, typeDBType: type, isAbstract: false }, position, type }] });
+                get().markDirty();
                 return id;
             },
 
             updateNodeLabel: (nodeId, label) => {
-                set({
-                    nodes: get().nodes.map((n) =>
-                        n.id === nodeId
-                            ? { ...n, data: { ...n.data, label } }
-                            : n
-                    ),
-                });
+                set({ nodes: get().nodes.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, label } } : n) });
+                get().markDirty();
             },
 
             // Attribute ノードの value 型を更新する
             // 即時反映（Enter 確定不要）: ドロップダウン選択 = 意図の確定
             updateNodeValueType: (nodeId, valueType) => {
-                set({
-                    nodes: get().nodes.map((n) =>
-                        n.id === nodeId
-                            ? { ...n, data: { ...n.data, valueType } }
-                            : n
-                    ),
-                });
+                set({ nodes: get().nodes.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, valueType } } : n) });
+                get().markDirty();
             },
 
-            setNarration: (text) => set({ narration: text }),
+            setNarration: (text) => {
+                set({ narration: text });
+                get().markDirty();
+            },
 
             setViewport: (viewport) => set({ viewport }),
 
             updateEdgeRole: (edgeId, role) => {
-                set({
-                    edges: get().edges.map((e) =>
-                        e.id === edgeId
-                            ? { ...e, data: { ...e.data, role } }
-                            : e
-                    ),
-                });
+                set({ edges: get().edges.map((e) => e.id === edgeId ? { ...e, data: { ...e.data, role } } : e) });
+                get().markDirty();
             },
 
             deleteEdge: (edgeId) => {
-                set({
-                    edges: get().edges.filter((e) => e.id !== edgeId),
-                });
+                set({ edges: get().edges.filter((e) => e.id !== edgeId) });
+                get().markDirty();
             },
+
+            isDirty: false,
+            markDirty: () => set({ isDirty: true }),
+            markClean: () => set({ isDirty: false }),
         }),
         {
             name: 'visual-thinkering-graph',

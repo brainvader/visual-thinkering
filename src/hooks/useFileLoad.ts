@@ -42,6 +42,15 @@ export function useFileLoad(): UseFileLoadReturn {
             const raw = await readTextFile(filePath);
             const data: SaveFileData = JSON.parse(raw);
 
+            useStore.setState({
+                nodes: data.nodes as never,
+                edges: data.edges as never,
+                narration: data.narration,
+            });
+
+            // 読み込み完了時に dirty フラグをリセットする
+            useStore.getState().markClean();
+
             // ストアに展開する（persist が自動的に localStorage に書き込む）
             useStore.setState({
                 nodes: data.nodes as never,

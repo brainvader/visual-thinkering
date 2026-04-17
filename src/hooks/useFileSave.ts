@@ -60,6 +60,13 @@ export function useFileSave(): UseFileSaveReturn {
             localStorage.setItem(SAVE_PATH_KEY, targetPath);
             setFilePath(targetPath);
 
+            await writeTextFile(targetPath, json);
+            localStorage.setItem(SAVE_PATH_KEY, targetPath);
+            setFilePath(targetPath);
+
+            // 保存成功時に dirty フラグをリセットする
+            useStore.getState().markClean();
+
             // フルパスをトーストに表示する
             toast.success('保存しました', {
                 description: targetPath,

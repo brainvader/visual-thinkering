@@ -43,6 +43,19 @@
 
 ---
 
+## 未保存確認ダイアログ [`unsaved-dialog.md`](specs/unsaved-dialog.md)
+
+| 機能                                              | ステータス | テスト |
+| ------------------------------------------------- | ---------- | ------ |
+| isDirty フラグ（store）                           | ✅         | ✅     |
+| 各アクションで markDirty() が呼ばれること         | ✅         | ✅     |
+| 保存・読み込み完了時に markClean() が呼ばれること | ✅         | ✅     |
+| UnsavedDialog コンポーネント（3ボタン）           | ✅         | ✅     |
+| useCloseGuard（onCloseRequested 連携）            | ✅         | ✅     |
+| App.tsx への統合                                  | ✅         | ✅     |
+
+---
+
 ## プロジェクト管理 [`project-management.md`](specs/project-management.md)
 
 | 機能                                                     | ステータス | テスト |

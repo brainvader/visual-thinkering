@@ -17,6 +17,9 @@ import { GraphCanvas } from './components/GraphCanvas';
 import { Sidebar } from './components/Sidebar';
 import { NarrationPanel } from './components/NarrationPanel';
 import { LLMAssistant } from './components/LLMAssistant';
+import { useCloseGuard } from './hooks/useCloseGuard';
+import { UnsavedDialog } from './components/UnsavedDialog';
+import { getCurrentWindow } from '@tauri-apps/api/window';
 
 export default function App() {
   // 無限ループ防止のため個別に state を取得
@@ -43,6 +46,14 @@ export default function App() {
   // ファイル保存フック
   const { save, filePath } = useFileSave();
   const { load } = useFileLoad();
+
+  const [closeDialogOpen, setCloseDialogOpen] = React.useState(false);
+
+  // アプリ終了時の未保存確認
+  useCloseGuard({
+    onRequestClose: () => setCloseDialogOpen(true),
+  });
+
 
   // アプリ起動時にファイルを読み込む
   useEffect(() => {
@@ -108,6 +119,19 @@ export default function App() {
     <div className="h-screen w-screen overflow-hidden bg-background flex flex-col">
       {/* ヘッダーバーを最上部に追加 */}
       <AppHeader filePath={filePath} onSave={save} />
+
+      {/* 未保存確認ダイアログ */}
+      <UnsavedDialog
+        open={closeDialogOpen}
+        onSaveAndClose={async () => {
+          await save();
+          getCurrentWindow().close();
+        }}
+        onDiscardAndClose={() => {
+          getCurrentWindow().close();
+        }}
+        onCancel={() => setCloseDialogOpen(false)}
+      />
 
       {/* 既存の4パネルレイアウト（変更なし） */}
       <div className="flex-1 overflow-hidden">
