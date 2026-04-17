@@ -32,11 +32,12 @@ pnpm dlx shadcn@latest add <component>  # shadcn コンポーネント追加
 
 ```
 src/
-├── main.tsx
+├── main.tsx                   # エントリーポイント・<Toaster /> 配置
 ├── App.tsx                    # ルート：4パネルレイアウト・selectedNode/selectedEdge 管理
-├── store.ts                   # Zustand + persist（localStorage）
+├── store.ts                   # Zustand + persist（localStorage・作業バッファ）
 ├── types/index.ts             # TypeDB 型定義
 ├── components/
+│   ├── AppHeader.tsx          # ヘッダーバー：ファイル名表示・保存ボタン
 │   ├── GraphCanvas.tsx        # React Flow キャンバス・カスタムコンテキストメニュー
 │   ├── Sidebar.tsx            # Inspector/TypeQL の2タブ構成
 │   ├── TypeQLPanel.tsx        # TypeQL 出力・シンタックスハイライト・Copy・警告
@@ -47,14 +48,23 @@ src/
 │   │   ├── RelationNode.tsx   # SVGひし形・緑系
 │   │   ├── AttributeNode.tsx  # 楕円・橙系
 │   │   └── index.ts           # nodeTypes export
-│   └── ui/                    # shadcn/ui プリミティブ
+│   └── ui/                    # shadcn/ui プリミティブ（sonner 含む）
 ├── hooks/
+│   ├── useFileSave.ts         # ファイル保存（初回ダイアログ・上書き・toast通知）
+│   ├── useFileLoad.ts         # ファイル読み込み（起動時・default.json フォールバック）
 │   └── useOwnershipBounds.ts  # owns 関係のバウンディングボックス計算
 ├── lib/
 │   ├── typeql.ts              # グラフ → TypeQL 変換
 │   ├── connectionRules.ts     # TypeDB 接続制限（isValidTypeDBConnection）
 │   └── utils.ts               # cn() ユーティリティ
 └── test/setup.ts              # ResizeObserver class モック
+src-tauri/
+├── src/lib.rs                 # Tauri プラグイン登録（fs・dialog・opener）
+├── Cargo.toml                 # tauri-plugin-fs・tauri-plugin-dialog 追加済み
+├── capabilities/default.json  # fs・dialog パーミッション設定
+├── resources/
+│   └── default.json           # サンプル兼初期データ（bundle 対象）
+└── tauri.conf.json            # bundle.resources に resources/default.json 登録済み
 docs/
 ├── ARCHITECTURE.md            # 設計決定の背景
 ├── TESTING.md                 # テスト戦略
@@ -64,52 +74,90 @@ docs/
 
 ## Architecture
 
-### Layout (App.tsx) — 4パネル構成
+### Layout (App.tsx) — ヘッダー + 4パネル構成
+
+```
+┌────────────────────────────────────────────────────────┐
+│ AppHeader（ファイル名・保存ボタン）                     │
+├──────────────┬─────────────────────────┬───────────────┤
+│              │                         │               │
+│  Narration   │      GraphCanvas        │   Sidebar     │
+│  （語り入力） │      （知識グラフ）      │  （Inspector） │
+│              ├─────────────────────────┤               │
+│              │     LLMAssistant        │               │
+└──────────────┴─────────────────────────┴───────────────┘
+```
 
 | Panel  | Size | Component                              |
 | ------ | ---- | -------------------------------------- |
+| Header | 40px | AppHeader                              |
 | Left   | 20%  | NarrationPanel                         |
 | Center | 60%  | GraphCanvas (75%) + LLMAssistant (25%) |
 | Right  | 20%  | Sidebar                                |
 
-**selectedNode / selectedEdge はノード/エッジを同時選択しない。App.tsx のローカル state で管理（store に入れると React Flow と干渉する）。**
+**selectedNode / selectedEdge** は `App.tsx` の `useState` で管理（store に入れると React Flow の再レンダリングと干渉）。
 
-### State (store.ts)
+## Data Persistence
 
-**必ず個別セレクターで購読すること（無限ループ防止）:**
+### 2層構造
 
-```typescript
-// ✅ Good
-const nodes = useStore((s) => s.nodes);
+| 層           | 仕組み                                        | 役割                           |
+| ------------ | --------------------------------------------- | ------------------------------ |
+| 作業バッファ | Zustand `persist` → `visual-thinkering-graph` | 編集中の自動保存               |
+| ファイル保存 | Tauri `fs` → JSON ファイル                    | 明示的な保存・プロジェクト共有 |
 
-// ❌ Bad — React Flow と組み合わせると無限再レンダー
-const store = useStore();
+### 起動時フロー（useFileLoad）
+
+```
+localStorage に vt-save-path あり → そのファイルを読み込む
+なし → resolveResource('resources/default.json') を読み込む
+失敗 → ストアの既存状態を保持
 ```
 
-**Store API:**
+### 保存フロー（useFileSave）
 
-| メソッド                                        | 説明                              |
-| ----------------------------------------------- | --------------------------------- |
-| `addNode(type, position)`                       | ノード追加 → 新ノードの id を返す |
-| `deleteNode(nodeId)`                            | ノード + 接続エッジを削除         |
-| `updateNodeLabel(nodeId, label)`                | ラベル更新                        |
-| `updateEdgeRole(edgeId, role)`                  | エッジのロール名更新              |
-| `deleteEdge(edgeId)`                            | エッジ削除（ノードは残る）        |
-| `setNarration(text)`                            | ナラティブ更新                    |
-| `onNodesChange` / `onEdgesChange` / `onConnect` | React Flow ハンドラ               |
+```
+vt-save-path あり → 上書き保存 → toast.success
+なし → ダイアログ → パスを vt-save-path に記憶 → 保存 → toast.success
+失敗 → toast.error
+```
 
-**persist 設定:** `name: 'visual-thinkering-graph'`, `version: 2`, `partialize` で関数を除外。
+### localStorage キー
 
-### Type System
+| キー                      | 内容                                     |
+| ------------------------- | ---------------------------------------- |
+| `visual-thinkering-graph` | nodes / edges / narration の作業バッファ |
+| `vt-save-path`            | 最後に保存したファイルの絶対パス         |
+
+### ファイルフォーマット
+
+```json
+{
+  "version": 1,
+  "savedAt": "ISO8601",
+  "nodes": [...],
+  "edges": [...],
+  "narration": "..."
+}
+```
+
+### Tauri パーミッション（capabilities/default.json）
+
+```json
+"fs:allow-write-text-file", "fs:allow-read-text-file",
+"fs:scope-app-recursive", "fs:scope-home-recursive",
+"dialog:allow-save"
+```
+
+## State
 
 ```typescript
-type TypeDBMetaType = "entity" | "relation" | "attribute";
-
 interface TypeDBNodeData {
   label: string;
   typeDBType: TypeDBMetaType;
-  isAbstract?: boolean;
-  [key: string]: unknown; // React Flow の Record<string, unknown> 要件
+  isAbstract: boolean;
+  valueType?: AttributeValueType;
+  [key: string]: unknown;
 }
 
 interface TypeDBEdgeData {
@@ -132,8 +180,6 @@ interface TypeDBEdgeData {
 ### GraphCanvas の fitView
 
 localStorage 復元後は `useNodesInitialized()` でノード測定完了を検知してから `fitView()` を実行する。`fitView` prop では復元直後のサイズ未計測状態で実行されるため機能しない。
-
-**条件:** `nodesInitialized && nodes.length > 0` の両方が true になったとき1回のみ実行する。ノード0件のとき `nodesInitialized` が即 true になるケースでフラグが早期にセットされるのを防ぐため `nodes.length > 0` が必須。
 
 各ノードの Handle パターン（上下左右 × source/target の8ソケット）:
 
@@ -177,6 +223,8 @@ localStorage 復元後は `useNodesInitialized()` でノード測定完了を検
 - **shadcn/ui**: style=`radix-nova`, icons=`lucide`, color=`neutral`
 - **Rust**: 変更最小限。ロジックは React フロントエンドに置く
 - **nodeTypes / edgeTypes**: 必ずモジュールレベルで定義（コンポーネント内で定義すると再レンダリングで無効化される）
+- **Tauri API モック**: テストでは `vi.mock('@tauri-apps/plugin-fs', ...)` 等で差し替える
+- **vi.mock ホイスティング**: ファクトリ内でモジュールスコープの変数を参照できない。戻り値は `beforeEach` で `vi.mocked().mockResolvedValue()` により設定する
 
 ## Testing Policy
 
@@ -194,10 +242,11 @@ localStorage 復元後は `useNodesInitialized()` でノード測定完了を検
 - `nodeTypes` / `edgeTypes` をコンポーネント内で定義しない（React Flow が無視する）
 - `selectedNode` を store に入れない（React Flow の再レンダリングと干渉）
 - ノード全体を Handle に置き換える実装（Easy Connect）は RelationNode の SVG と干渉するため保留
+- `vi.mock` ファクトリ内でモジュールスコープの変数を参照しない（ホイスティングにより未初期化エラー）
 
 ## Specs
 
-実装状況: [`docs/STATUS.md`](docs/STATUS.md)  
+実装状況: [`docs/STATUS.md`](docs/STATUS.md)
 機能仕様: [`docs/specs/`](docs/specs/)
 
 スペックを読んで「failed test を書き、それを通す実装を書く」フローで開発する。
