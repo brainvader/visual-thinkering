@@ -10,6 +10,8 @@
     "fs:allow-read-text-file",
     "fs:scope-app-recursive",
     "fs:scope-home-recursive",
-    "dialog:allow-save"
+    "dialog:allow-save",
+    "core:window:allow-close",
+    "core:window:allow-destroy"
   ]
 }
