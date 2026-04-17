@@ -8,6 +8,8 @@
     "opener:default",
     "fs:allow-write-text-file",
     "fs:allow-read-text-file",
+    "fs:scope-app-recursive",
+    "fs:scope-home-recursive",
     "dialog:allow-save"
   ]
 }

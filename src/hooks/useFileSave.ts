@@ -1,18 +1,16 @@
 // src/hooks/useFileSave.ts
 //
 // ファイル保存ロジックを担うカスタムフック。
-// Tauri の fs / dialog プラグインを使い、JSONファイルへの書き出しを行う。
-// 初回はダイアログでパスを選択、2回目以降は同パスへ上書きする。
+// 保存成功・失敗時に Sonner トーストで通知する。
 
 import { useState } from 'react';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { save as dialogSave } from '@tauri-apps/plugin-dialog';
+import { toast } from 'sonner';
 import { useStore } from '@/store';
 
-// localStorage のキー定数
 const SAVE_PATH_KEY = 'vt-save-path';
 
-// ファイルに書き出す JSON の形式
 interface SaveFileData {
     version: number;
     savedAt: string;
@@ -27,16 +25,13 @@ interface UseFileSaveReturn {
 }
 
 export function useFileSave(): UseFileSaveReturn {
-    // 保存先パスを state で管理（localStorage から初期値を読み込む）
     const [filePath, setFilePath] = useState<string | null>(
         () => localStorage.getItem(SAVE_PATH_KEY)
     );
 
     const save = async () => {
-        // ストアから現在の状態を取得する
         const { nodes, edges, narration } = useStore.getState();
 
-        // 保存内容を組み立てる
         const data: SaveFileData = {
             version: 1,
             savedAt: new Date().toISOString(),
@@ -46,7 +41,6 @@ export function useFileSave(): UseFileSaveReturn {
         };
         const json = JSON.stringify(data, null, 2);
 
-        // パスが未設定の場合はダイアログを開く
         let targetPath = filePath;
 
         if (!targetPath) {
@@ -61,12 +55,21 @@ export function useFileSave(): UseFileSaveReturn {
             targetPath = selected;
         }
 
-        // ファイルに書き出す
-        await writeTextFile(targetPath, json);
+        try {
+            await writeTextFile(targetPath, json);
+            localStorage.setItem(SAVE_PATH_KEY, targetPath);
+            setFilePath(targetPath);
 
-        // パスを記憶する
-        localStorage.setItem(SAVE_PATH_KEY, targetPath);
-        setFilePath(targetPath);
+            // フルパスをトーストに表示する
+            toast.success('保存しました', {
+                description: targetPath,
+                duration: 2000,
+            });
+        } catch (error) {
+            toast.error('保存に失敗しました', {
+                description: String(error),
+            });
+        }
     };
 
     return { save, filePath };
