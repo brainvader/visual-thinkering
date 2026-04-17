@@ -38,14 +38,17 @@
 
 ## プロジェクト管理 [`project-management.md`](specs/project-management.md)
 
-| 機能                                                       | ステータス | テスト |
-| ---------------------------------------------------------- | ---------- | ------ |
-| react-router-dom (MemoryRouter) 導入                       | ❌         | ❌     |
-| projectStore（add / delete / update）                      | ❌         | ❌     |
-| ProjectListPage（カードグリッド表示）                      | ❌         | ❌     |
-| NewProjectDialog（名前・概要入力・バリデーション）         | ❌         | ❌     |
-| ProjectCard（クリックで遷移・削除ボタン）                  | ❌         | ❌     |
-| EditorPage ラッパー + EditorHeader（戻るボタン・PJ名表示） | ❌         | ❌     |
+| 機能                                                     | ステータス | テスト |
+| -------------------------------------------------------- | ---------- | ------ |
+| react-router-dom (MemoryRouter) 導入                     | ❌         | ❌     |
+| recentProjectsStore（履歴の add / remove・最大10件）     | ❌         | ❌     |
+| useFileLoad に open() 追加（ファイルを開くダイアログ）   | ❌         | ❌     |
+| ProjectListPage（履歴カードグリッド・空状態表示）        | ❌         | ❌     |
+| NewProjectDialog（名前・概要入力・保存先ダイアログ連携） | ❌         | ❌     |
+| ProjectCard（クリックで遷移・履歴削除ボタン）            | ❌         | ❌     |
+| EditorPage ラッパー + AppHeader に戻るボタン追加         | ❌         | ❌     |
+| useFileSave / useFileLoad に addRecent() 連携            | ❌         | ❌     |
+| JSON フォーマットに name / description フィールド追加    | ❌         | ❌     |
 
 ---
 
