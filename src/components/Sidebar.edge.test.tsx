@@ -26,6 +26,29 @@ const defaultProps = {
     edges: [],
 };
 
+// テストデータ追加
+const attributeNode: Node<TypeDBNodeData> = {
+    id: 'node-attr',
+    data: { label: 'name', typeDBType: 'attribute', isAbstract: false },
+    position: { x: 0, y: 0 },
+    type: 'attribute',
+};
+
+const entityNode: Node<TypeDBNodeData> = {
+    id: 'node-entity',
+    data: { label: 'Person', typeDBType: 'entity', isAbstract: false },
+    position: { x: 0, y: 0 },
+    type: 'entity',
+};
+
+// Attribute へのエッジ（owns）
+const ownsEdge: Edge<TypeDBEdgeData> = {
+    id: 'e-owns',
+    source: 'node-entity',
+    target: 'node-attr',
+    data: { role: '' },
+};
+
 beforeEach(() => {
     vi.clearAllMocks();
 });
@@ -99,5 +122,41 @@ describe('Sidebar: エッジインスペクター', () => {
     it('selectedNode も selectedEdge も null のとき案内メッセージが表示されること', () => {
         render(<Sidebar {...defaultProps} />);
         expect(screen.getByText(/select a node or edge/i)).toBeInTheDocument();
+    });
+});
+
+
+describe('Sidebar: owns エッジ（Attribute への接続）', () => {
+    it('接続先が Attribute のとき Role 入力フィールドが表示されないこと', () => {
+        render(
+            <Sidebar
+                {...defaultProps}
+                selectedEdge={ownsEdge}
+                nodes={[entityNode, attributeNode]}
+            />
+        );
+        expect(screen.queryByRole('textbox', { name: /role/i })).toBeNull();
+    });
+
+    it('接続先が Attribute のとき Delete ボタンは表示されること', () => {
+        render(
+            <Sidebar
+                {...defaultProps}
+                selectedEdge={ownsEdge}
+                nodes={[entityNode, attributeNode]}
+            />
+        );
+        expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
+    });
+
+    it('接続先が Relation のとき Role 入力フィールドが表示されること', () => {
+        render(
+            <Sidebar
+                {...defaultProps}
+                selectedEdge={mockEdge} // target: node-2 は nodes に含まれないため entity 扱い
+                nodes={[]}
+            />
+        );
+        expect(screen.getByRole('textbox', { name: /role/i })).toBeInTheDocument();
     });
 });

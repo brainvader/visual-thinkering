@@ -124,6 +124,12 @@ export const Sidebar = ({
         [handleRoleConfirm]
     );
 
+    // 接続先ノードの typeDBType を確認して owns エッジ（Attribute への接続）か判定する
+    // nodes が渡されているため、selectedEdge.target から引き直す
+    const isOwnsEdge = selectedEdge
+        ? nodes.find((n) => n.id === selectedEdge.target)?.data.typeDBType === 'attribute'
+        : false;
+
     return (
         <aside className="h-full border-l bg-card flex flex-col">
             <Tabs defaultValue="inspector" className="flex flex-col h-full">
@@ -207,29 +213,32 @@ export const Sidebar = ({
                             </Button>
                         </div>
                     ) : selectedEdge ? (
-                        /* エッジインスペクター */
+
                         <div className="flex flex-col gap-4">
                             <p className="text-xs text-muted-foreground font-mono">
                                 Edge ID: {selectedEdge.id}
                             </p>
-                            <div className="flex flex-col gap-1.5">
-                                <Label htmlFor="edge-role" className="text-xs font-medium">
-                                    Role
-                                </Label>
-                                <Input
-                                    id="edge-role"
-                                    value={editingRole}
-                                    onChange={(e) => setEditingRole(e.target.value)}
-                                    onKeyDown={handleRoleKeyDown}
-                                    placeholder="ロール名を入力（例: employee）"
-                                    className="h-8 text-sm"
-                                    aria-label="role"
-                                    autoComplete="off"
-                                />
-                                <p className="text-[10px] text-muted-foreground/70">
-                                    Enter で確定 / Esc でキャンセル
-                                </p>
-                            </div>
+                            {/* owns エッジ（Attribute への接続）の場合は Role 入力欄を非表示にする */}
+                            {!isOwnsEdge && (
+                                <div className="flex flex-col gap-1.5">
+                                    <Label htmlFor="edge-role" className="text-xs font-medium">
+                                        Role
+                                    </Label>
+                                    <Input
+                                        id="edge-role"
+                                        value={editingRole}
+                                        onChange={(e) => setEditingRole(e.target.value)}
+                                        onKeyDown={handleRoleKeyDown}
+                                        placeholder="ロール名を入力（例: employee）"
+                                        className="h-8 text-sm"
+                                        aria-label="role"
+                                        autoComplete="off"
+                                    />
+                                    <p className="text-[10px] text-muted-foreground/70">
+                                        Enter で確定 / Esc でキャンセル
+                                    </p>
+                                </div>
+                            )}
                             <Button
                                 variant="destructive"
                                 size="sm"
@@ -249,6 +258,6 @@ export const Sidebar = ({
                     <TypeQLPanel nodes={nodes} edges={edges} />
                 </TabsContent>
             </Tabs>
-        </aside>
+        </aside >
     );
 };
