@@ -43,6 +43,7 @@ src/
 │   ├── TypeQLPanel.tsx        # TypeQL 出力・シンタックスハイライト・Copy・警告
 │   ├── NarrationPanel.tsx     # ナラティブ入力
 │   ├── LLMAssistant.tsx       # LLM 命令インターフェース
+│   ├── UnsavedDialog.tsx      # 未保存確認ダイアログ（3ボタン）
 │   ├── nodes/                 # カスタムノード
 │   │   ├── EntityNode.tsx     # 角丸矩形・青系
 │   │   ├── RelationNode.tsx   # SVGひし形・緑系
@@ -50,8 +51,9 @@ src/
 │   │   └── index.ts           # nodeTypes export
 │   └── ui/                    # shadcn/ui プリミティブ（sonner 含む）
 ├── hooks/
-│   ├── useFileSave.ts         # ファイル保存（初回ダイアログ・上書き・toast通知）
-│   ├── useFileLoad.ts         # ファイル読み込み（起動時・default.json フォールバック）
+│   ├── useFileSave.ts         # ファイル保存（初回ダイアログ・上書き・toast通知・markClean）
+│   ├── useFileLoad.ts         # ファイル読み込み（起動時・default.json フォールバック・markClean）
+│   ├── useCloseGuard.ts       # アプリ終了時の未保存確認（onCloseRequested 連携）
 │   └── useOwnershipBounds.ts  # owns 関係のバウンディングボックス計算
 ├── lib/
 │   ├── typeql.ts              # グラフ → TypeQL 変換
@@ -255,6 +257,8 @@ localStorage 復元後は `useNodesInitialized()` でノード測定完了を検
 - `selectedNode` を store に入れない（React Flow の再レンダリングと干渉）
 - ノード全体を Handle に置き換える実装（Easy Connect）は RelationNode の SVG と干渉するため保留
 - `vi.mock` ファクトリ内でモジュールスコープの変数を参照しない（ホイスティングにより未初期化エラー）
+- `tauri.conf.json` に `closeRequestedEvent` を追加しない（Tauri 2 では不要・エラーになる）
+- `getCurrentWindow().close()` には `core:window:allow-destroy` パーミッションが必要
 
 ## Specs
 
