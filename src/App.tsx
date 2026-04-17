@@ -29,6 +29,8 @@ export default function App() {
   const updateEdgeRole = useStore((s) => s.updateEdgeRole);
   const deleteEdge = useStore((s) => s.deleteEdge);
   const narration = useStore((s) => s.narration);
+  const viewport = useStore((s) => s.viewport);
+  const setViewport = useStore((s) => s.setViewport);
 
   // 選択状態はグラフ状態とは独立した UI の一時状態
   // ノードとエッジは同時選択しない
@@ -106,6 +108,8 @@ export default function App() {
                     deleteEdge={handleDeleteEdge}
                     addNode={addNode}
                     onNodeAdded={onNodeAdded}
+                    viewport={viewport}
+                    setViewport={setViewport}
                   />
                 </main>
               </ResizablePanel>

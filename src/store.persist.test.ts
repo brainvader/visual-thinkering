@@ -111,4 +111,17 @@ describe('store: 永続化（localStorage）', () => {
         expect(saved.version).toBeDefined();
         expect(typeof saved.version).toBe('number');
     });
+
+    it('viewport が localStorage に保存されること', () => {
+        useStore.getState().setViewport({ x: 100, y: -200, zoom: 1.5 });
+
+        const raw = localStorage.getItem('visual-thinkering-graph');
+        const saved = JSON.parse(raw!);
+        expect(saved.state.viewport).toEqual({ x: 100, y: -200, zoom: 1.5 });
+    });
+
+    it('setViewport で viewport が更新されること', () => {
+        useStore.getState().setViewport({ x: 50, y: 75, zoom: 0.8 });
+        expect(useStore.getState().viewport).toEqual({ x: 50, y: 75, zoom: 0.8 });
+    });
 });

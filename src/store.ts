@@ -8,6 +8,7 @@ import {
     Node,
     NodeChange,
     MarkerType,
+    Viewport,
     addEdge,
     OnNodesChange,
     OnEdgesChange,
@@ -21,6 +22,7 @@ interface GraphState {
     nodes: Node<TypeDBNodeData>[];
     edges: Edge<TypeDBEdgeData>[];
     narration: string;
+    viewport: Viewport;
     onNodesChange: OnNodesChange<Node<TypeDBNodeData>>;
     onEdgesChange: OnEdgesChange<Edge<TypeDBEdgeData>>;
     onConnect: OnConnect;
@@ -31,6 +33,7 @@ interface GraphState {
     // Attribute ノードの value 型を更新する
     updateNodeValueType: (nodeId: string, valueType: AttributeValueType) => void;
     setNarration: (text: string) => void;
+    setViewport: (viewport: Viewport) => void;
     updateEdgeRole: (edgeId: string, role: string) => void;
     deleteEdge: (edgeId: string) => void;
 }
@@ -48,6 +51,7 @@ export const useStore = create<GraphState>()(
             ],
             edges: [],
             narration: '',
+            viewport: { x: 0, y: 0, zoom: 1 },
 
             onNodesChange: (changes: NodeChange<Node<TypeDBNodeData>>[]) => {
                 set({ nodes: applyNodeChanges(changes, get().nodes) });
@@ -123,6 +127,8 @@ export const useStore = create<GraphState>()(
 
             setNarration: (text) => set({ narration: text }),
 
+            setViewport: (viewport) => set({ viewport }),
+
             updateEdgeRole: (edgeId, role) => {
                 set({
                     edges: get().edges.map((e) =>
@@ -148,6 +154,7 @@ export const useStore = create<GraphState>()(
                 nodes: state.nodes,
                 edges: state.edges,
                 narration: state.narration,
+                viewport: state.viewport,
             }),
         }
     )
