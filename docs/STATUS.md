@@ -18,6 +18,22 @@
 
 ---
 
+## プロジェクト管理 [`project-management.md`](specs/project-management.md)
+
+| 機能                                                          | ステータス | テスト |
+| ------------------------------------------------------------- | ---------- | ------ |
+| react-router-dom (MemoryRouter) 導入                          | ❌         | ❌     |
+| 旧 localStorage データのマイグレーション（デフォルトPJ化）    | ❌         | ❌     |
+| projectStore（add / delete / update）                         | ❌         | ❌     |
+| ProjectListPage（カードグリッド表示）                         | ❌         | ❌     |
+| NewProjectDialog（名前・概要入力・バリデーション）            | ❌         | ❌     |
+| ProjectCard（クリックで遷移・削除ボタン）                     | ❌         | ❌     |
+| EditorPage ラッパー（既存エディタをプロジェクトIDでマウント） | ❌         | ❌     |
+| EditorHeader（プロジェクト名表示・一覧へ戻るボタン）          | ❌         | ❌     |
+| useSchemaStore の動的キー対応（vt-schema-{id}）               | ❌         | ❌     |
+
+---
+
 ## ノード操作 [`node-operations.md`](specs/node-operations.md)
 
 | 機能                                                              | ステータス | テスト |
@@ -33,16 +49,16 @@
 
 ## カスタムノード [`custom-nodes.md`](specs/custom-nodes.md)
 
-| 機能                                                                    | ステータス | テスト |
-| ----------------------------------------------------------------------- | ---------- | ------ |
-| EntityNode（角丸矩形・青系）                                            | ✅         | ✅     |
-| RelationNode（SVGひし形・緑系）                                         | ✅         | ✅     |
-| AttributeNode（楕円・橙系）                                             | ✅         | ✅     |
-| 選択時のハイライト表示                                                  | ✅         | ✅     |
-| 全方向ソケット（上下左右 × source/target）                              | ✅         | ⚠️     |
-| コンテキストメニュー（ノード上・キャンバス上・エッジ上）                | ✅         | ⚠️     |
-| localStorage 復元後の fitView（useNodesInitialized + nodes.length > 0） | ✅         | ✅     |
-| Easy Connect（ノード全体をHandleにする）                                | 🔁 保留    | ❌     |
+| 機能                                                     | ステータス | テスト |
+| -------------------------------------------------------- | ---------- | ------ |
+| EntityNode（角丸矩形・青系）                             | ✅         | ✅     |
+| RelationNode（SVGひし形・緑系）                          | ✅         | ✅     |
+| AttributeNode（楕円・橙系）                              | ✅         | ✅     |
+| 選択時のハイライト表示                                   | ✅         | ✅     |
+| 全方向ソケット（上下左右 × source/target）               | ✅         | ⚠️     |
+| コンテキストメニュー（ノード上・キャンバス上・エッジ上） | ✅         | ⚠️     |
+| localStorage 復元後の fitView（useNodesInitialized）     | ✅         | ⚠️     |
+| Easy Connect（ノード全体をHandleにする）                 | 🔁 保留    | ❌     |
 
 ---
 
@@ -79,69 +95,16 @@
 | ---------------------------------------------------- | ---------- | ------ |
 | nodes / edges / narration を localStorage に自動保存 | ✅         | ✅     |
 | アプリ再起動後に状態が復元されること                 | ✅         | ✅     |
-| ハンドラ関数が保存対象から除外されること             | ✅         | ✅     |
-| persist version 管理（マイグレーション基盤）         | ✅         | ✅     |
 
 ---
 
-## Ownership ハイライト [`ownership-highlight.md`](specs/ownership-highlight.md)
+## TypeQL 出力 [`typeql-panel.md`](specs/typeql-panel.md)
 
-| 機能                                                    | ステータス | テスト |
-| ------------------------------------------------------- | ---------- | ------ |
-| Entity/Relation 選択時に owns 先 Attribute を矩形で囲む | ✅         | ✅     |
-| ノード移動時にリアルタイムで矩形が追従・縮小すること    | ✅         | ✅     |
-| Attribute 選択時は表示しないこと                        | ✅         | ✅     |
-| ズーム・パン時も正しく追従すること                      | ✅         | ⚠️     |
-
----
-
-## TypeQL 出力パネル [`typeql-panel.md`](specs/typeql-panel.md)
-
-| 機能                                                  | ステータス | テスト |
-| ----------------------------------------------------- | ---------- | ------ |
-| Attribute → Entity → Relation の順で定義を生成        | ✅         | ✅     |
-| owns（Entity/Relation → Attribute）の生成             | ✅         | ✅     |
-| plays（Entity → Relation）の生成                      | ✅         | ✅     |
-| relates（Relation のロール）の生成                    | ✅         | ✅     |
-| Attribute の value 型出力（valueType フィールド参照） | ✅         | ✅     |
-| ロール名未設定エッジの警告表示                        | ✅         | ✅     |
-| TypeQL キーワードと同名ロール名の警告                 | ✅         | ✅     |
-| シンタックスハイライト                                | ✅         | ✅     |
-| Copy ボタン（クリップボードコピー）                   | ✅         | ✅     |
-| Sidebar の Inspector / TypeQL タブ化                  | ✅         | ✅     |
-
----
-
-## Sidebar インスペクター
-
-| 機能                                                                  | ステータス | テスト |
-| --------------------------------------------------------------------- | ---------- | ------ |
-| Attribute ノード選択時に value 型セレクト表示                         | ✅         | ✅     |
-| value 型変更の即時反映（string / long / double / boolean / datetime） | ✅         | ✅     |
-| 旧データ（valueType なし）の後方互換（string フォールバック）         | ✅         | ✅     |
-
----
-
-## Easy Connect [`easy-connect.md`](specs/easy-connect.md)
-
-> ⚠️ RelationNode の SVG ひし形と Handle の干渉により実装を中断。再設計が必要。
-
-| 機能                                | ステータス | テスト |
-| ----------------------------------- | ---------- | ------ |
-| ノード全体をドラッグして接続できる  | 🔁 保留    | ❌     |
-| FloatingEdge（境界から最短距離）    | 🔁 保留    | ❌     |
-| CustomConnectionLine（接続中の線）  | 🔁 保留    | ❌     |
-| dragHandle によるドラッグ移動の維持 | 🔁 保留    | ❌     |
-
----
-
-## 将来実装（スペック未策定）
-
-| 機能                                           | ステータス | 備考                                            |
-| ---------------------------------------------- | ---------- | ----------------------------------------------- |
-| isAbstract フラグの編集                        | ❌         | Sidebar に未実装                                |
-| ファイルへの永続化（Tauri fs）                 | 🔁         | localStorage の限界を超えた場合の候補           |
-| LLM API 接続                                   | ❌         | NarrationPanel + LLMAssistant の backend 未実装 |
-| E2E テスト（Playwright）                       | ❌         | 右クリック・ドラッグ操作の自動テスト            |
-| スキーマ vs データグラフの分離                 | 🔁         | ARCHITECTURE.md に保留として記録済み            |
-| 型整備（Branded Types / Discriminated Unions） | ❌         | 別ブランチで実施予定                            |
+| 機能                                         | ステータス | テスト |
+| -------------------------------------------- | ---------- | ------ |
+| TypeQL パネル表示（Sidebar 第2タブ）         | ✅         | ✅     |
+| `define` ブロック単体出力                    | ✅         | ✅     |
+| Attribute → Entity → Relation の依存順ソート | ✅         | ✅     |
+| ロール名未設定エッジへの警告表示             | ✅         | ✅     |
+| TypeQL キーワードと同名ロール名への警告      | ✅         | ✅     |
+| コピーボタン                                 | ✅         | ✅     |

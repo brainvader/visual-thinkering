@@ -56,14 +56,23 @@ it("足し算", () => {
 ```
 src/
 ├── App.integration.test.tsx              # 統合テスト（複数コンポーネントの連動）
-├── store.test.ts                         # ストアのユニットテスト
-├── lib/typeql.test.ts                    # 純粋関数のユニットテスト
+├── store/
+│   ├── schemaStore.test.ts               # スキーマストアのユニットテスト
+│   └── projectStore.test.ts              # プロジェクトストアのユニットテスト
+├── lib/
+│   ├── typeql.test.ts                    # 純粋関数のユニットテスト
+│   └── migration.test.ts                 # マイグレーション関数のユニットテスト
+├── pages/
+│   └── ProjectListPage.test.tsx          # ページコンポーネントテスト
 ├── components/
-│   ├── NarrationPanel.test.tsx           # コンポーネントテスト
-│   ├── LLMAssistant.test.tsx             # コンポーネントテスト
-│   ├── Sidebar.test.tsx                  # コンポーネントテスト
+│   ├── ProjectCard.test.tsx              # プロジェクトカードテスト
+│   ├── NewProjectDialog.test.tsx         # 新規作成ダイアログテスト
+│   ├── EditorHeader.test.tsx             # エディタヘッダーテスト
+│   ├── NarrationPanel.test.tsx
+│   ├── LLMAssistant.test.tsx
+│   ├── Sidebar.test.tsx
 │   └── nodes/
-│       ├── EntityNode.test.tsx           # カスタムノードテスト
+│       ├── EntityNode.test.tsx
 │       ├── RelationNode.test.tsx
 │       └── AttributeNode.test.tsx
 └── test/setup.ts                         # ResizeObserver / Handle モック
@@ -84,21 +93,52 @@ e2e/
 ```typescript
 // リセットパターン
 beforeEach(() => {
-  useStore.setState({ nodes: [...], edges: [...], narration: '' });
+  useSchemaStore.setState({ nodes: [], edges: [], narration: "" });
 });
 ```
 
-**テスト対象:**
+**schemaStore のテスト対象:**
 
-- state 変更ロジック（addNode, deleteNode, updateNodeLabel, setNarration など）
+- addNode / deleteNode / updateNodeLabel
 - エッジの連動削除など副作用
+
+**projectStore のテスト対象:**
+
+- addProject（id・createdAt の自動生成を含む）
+- deleteProject
+- updateProject
 
 ### 純粋関数（lib/）
 
-依存なし。入力と出力だけをテストする。`generateTypeQL` は TypeQL 文字列の内容で検証する。
+依存なし。入力と出力だけをテストする。
 
 ```typescript
 expect(result).toContain("Person sub entity");
+```
+
+**migration.ts のテスト方針:**
+
+`localStorage` のモックを使い、旧データあり/なしの両パターンを検証する。
+
+```typescript
+beforeEach(() => {
+  localStorage.clear();
+});
+
+it("旧データがある場合、デフォルトプロジェクトに変換される", () => {
+  localStorage.setItem("nodes", JSON.stringify([...]));
+  localStorage.setItem("edges", JSON.stringify([...]));
+  runMigration();
+  expect(localStorage.getItem("nodes")).toBeNull();
+  const projects = JSON.parse(localStorage.getItem("vt-projects")!);
+  expect(projects).toHaveLength(1);
+  expect(projects[0].name).toBe("デフォルトプロジェクト");
+});
+
+it("旧データがない場合、何も変化しない", () => {
+  runMigration();
+  expect(localStorage.getItem("vt-projects")).toBeNull();
+});
 ```
 
 ### コンポーネント（単体）
@@ -129,6 +169,22 @@ vi.mock("@xyflow/react", async (importOriginal) => {
 });
 ```
 
+**ページコンポーネント（pages/）のテスト方針:**
+
+ルーターのコンテキストが必要なため `MemoryRouter` でラップして render する。
+
+```typescript
+import { MemoryRouter } from "react-router-dom";
+
+const renderWithRouter = (ui: React.ReactElement, { initialEntries = ["/"] } = {}) =>
+  render(<MemoryRouter initialEntries={initialEntries}>{ui}</MemoryRouter>);
+
+it("プロジェクト一覧が表示される", () => {
+  renderWithRouter(<ProjectListPage />);
+  expect(screen.getByText("新規プロジェクト")).toBeInTheDocument();
+});
+```
+
 ### 統合テスト（App レベル）
 
 **目的:** 複数コンポーネントをまたぐ「つなぎ目」の動作を検証する。ユニットテストでは発見できない連動バグを対象にする。
@@ -142,7 +198,6 @@ vi.mock("@xyflow/react", async (importOriginal) => {
 **制約:** `ReactFlow` 本体はイベントハンドリングが複雑なため、統合テストでもモックが必要な場合がある。
 
 ```typescript
-// src/App.integration.test.tsx のイメージ
 vi.mock('@xyflow/react', async (importOriginal) => {
     const actual = await importOriginal<typeof import('@xyflow/react')>();
     return {
@@ -151,68 +206,4 @@ vi.mock('@xyflow/react', async (importOriginal) => {
         Handle: () => null,
     };
 });
-
-it('ノード削除後に Sidebar のインスペクターが閉じること', async () => {
-    render(<App />);
-    // ノードを選択 → Delete → "Select a node" メッセージが出る
-});
-```
-
-### E2E テスト（Playwright）— 将来実装
-
-**目的:** ブラウザ操作が必要なシナリオを実際の環境で検証する。ユニット・統合テストでカバーできない操作を対象にする。
-
-**対象シナリオ（優先度順）:**
-
-| シナリオ                            | 理由                             |
-| ----------------------------------- | -------------------------------- |
-| 右クリック → Quick Add → ノード追加 | 右クリックは jsdom で再現不可    |
-| ノード右クリック → Delete Node      | 同上                             |
-| ノードのドラッグ移動                | マウスイベントの連続が必要       |
-| ラベル編集 → Enter 確定             | 統合テストで代替可能だが確認用に |
-
-**セットアップ（導入時）:**
-
-```bash
-pnpm add -D @playwright/test
-pnpm dlx playwright install chromium
-```
-
-```typescript
-// e2e/node-operations.spec.ts のイメージ
-test("右クリックでノードを追加できる", async ({ page }) => {
-  await page.goto("http://localhost:1420");
-  await page.locator(".react-flow__pane").click({ button: "right" });
-  await expect(page.getByText("Quick Add")).toBeVisible();
-  await page.getByTitle("Entity").click();
-  await expect(page.locator(".react-flow__node")).toHaveCount(2);
-});
-```
-
-**Tauri 統合:** `pnpm dev`（Vite のみ）で起動した Web モードに対してテストを実行する。デスクトップアプリモードの E2E は `@tauri-apps/plugin-playwright` が必要。
-
----
-
-## セットアップ
-
-```typescript
-// src/test/setup.ts
-import "@testing-library/jest-dom";
-import { vi } from "vitest";
-
-// React Flow が必要とする Web API のモック
-globalThis.ResizeObserver = vi.fn().mockImplementation(() => ({
-  observe: vi.fn(),
-  unobserve: vi.fn(),
-  disconnect: vi.fn(),
-}));
-```
-
----
-
-## 実行
-
-```bash
-pnpm test           # ウォッチモード
-pnpm test --run     # CI 用（1回実行）
 ```
