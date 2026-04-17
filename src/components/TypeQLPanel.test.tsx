@@ -108,3 +108,42 @@ describe('TypeQLPanel', () => {
         expect(screen.getByText(/ノードを追加/i)).toBeInTheDocument();
     });
 });
+
+describe('TypeQLPanel: シンタックスハイライト', () => {
+    it('define キーワードが青色 span で描画されること', () => {
+        const { container } = render(<TypeQLPanel nodes={[person]} edges={[]} />);
+        const highlights = container.querySelectorAll('span.text-blue-600');
+        const texts = Array.from(highlights).map((el) => el.textContent);
+        expect(texts).toContain('define');
+    });
+
+    it('sub キーワードが青色 span で描画されること', () => {
+        const { container } = render(<TypeQLPanel nodes={[person]} edges={[]} />);
+        const highlights = container.querySelectorAll('span.text-blue-600');
+        const texts = Array.from(highlights).map((el) => el.textContent);
+        expect(texts).toContain('sub');
+    });
+
+    it('entity キーワードが青色 span で描画されること', () => {
+        const { container } = render(<TypeQLPanel nodes={[person]} edges={[]} />);
+        const highlights = container.querySelectorAll('span.text-blue-600');
+        const texts = Array.from(highlights).map((el) => el.textContent);
+        expect(texts).toContain('entity');
+    });
+
+    it('コメント行が薄色 span で描画されること', () => {
+        // Attribute ノードを加えることでコメント行（# Attribute 定義）が生成される
+        const attr = makeNode('n2', 'name', 'attribute');
+        const { container } = render(<TypeQLPanel nodes={[person, attr]} edges={[]} />);
+        const muted = container.querySelectorAll('span.text-muted-foreground');
+        expect(muted.length).toBeGreaterThan(0);
+    });
+
+    it('ラベル名（非キーワード）は青色 span で描画されないこと', () => {
+        const { container } = render(<TypeQLPanel nodes={[person]} edges={[]} />);
+        const highlights = container.querySelectorAll('span.text-blue-600');
+        const texts = Array.from(highlights).map((el) => el.textContent);
+        // "Person" はキーワードではないので着色されない
+        expect(texts).not.toContain('Person');
+    });
+});

@@ -106,9 +106,9 @@
 | Attribute の value 型出力（valueType フィールド参照） | ✅         | ✅     |
 | ロール名未設定エッジの警告表示                        | ✅         | ✅     |
 | TypeQL キーワードと同名ロール名の警告                 | ✅         | ✅     |
-| シンタックスハイライト                                | ✅         | ⚠️     |
+| シンタックスハイライト                                | ✅         | ✅     |
 | Copy ボタン（クリップボードコピー）                   | ✅         | ✅     |
-| Sidebar の Inspector / TypeQL タブ化                  | ✅         | ⚠️     |
+| Sidebar の Inspector / TypeQL タブ化                  | ✅         | ✅     |
 
 ---
 
