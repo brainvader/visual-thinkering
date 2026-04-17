@@ -141,6 +141,10 @@ vi.mock("@tauri-apps/plugin-fs", () => ({
   readTextFile: vi.fn(),
 }));
 
+vi.mock("sonner", () => ({
+  toast: { success: vi.fn(), error: vi.fn() },
+}));
+
 beforeEach(() => {
   vi.mocked(readTextFile).mockResolvedValue(MOCK_JSON);
 });
@@ -150,7 +154,9 @@ beforeEach(() => {
 | ------------- | ----------------------------------------------- |
 | `useFileSave` | パスあり → 上書き保存                           |
 | `useFileSave` | パスなし → ダイアログ → パス記憶                |
-| `useFileSave` | キャンセル → 何もしない                         |
+| `useFileSave` | キャンセル → 何もしない・toast なし             |
+| `useFileSave` | 保存成功 → toast.success にフルパスが渡される   |
+| `useFileSave` | 保存失敗 → toast.error が呼ばれる               |
 | `useFileSave` | 保存内容に nodes / edges / narration が含まれる |
 | `useFileLoad` | パスあり → そのファイルを読む                   |
 | `useFileLoad` | パスなし → default.json を読む                  |
