@@ -3,12 +3,28 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { Node, Edge } from '@xyflow/react';
-import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
+import { TypeDBNodeData, TypeDBEdgeData, AttributeValueType } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import {
+    Select,
+    SelectContent,
+    SelectItem,
+    SelectTrigger,
+    SelectValue,
+} from '@/components/ui/select';
 import { TypeQLPanel } from './TypeQLPanel';
+
+// TypeDB がサポートする value 型の選択肢
+const VALUE_TYPE_OPTIONS: { value: AttributeValueType; label: string }[] = [
+    { value: 'string', label: 'string' },
+    { value: 'long', label: 'long' },
+    { value: 'double', label: 'double' },
+    { value: 'boolean', label: 'boolean' },
+    { value: 'datetime', label: 'datetime' },
+];
 
 interface SidebarProps {
     selectedNode: Node<TypeDBNodeData> | null;
@@ -16,6 +32,8 @@ interface SidebarProps {
     deleteNode: (id: string) => void;
     deleteEdge: (id: string) => void;
     updateNodeLabel: (nodeId: string, label: string) => void;
+    // Attribute ノードの value 型更新
+    updateNodeValueType: (nodeId: string, valueType: AttributeValueType) => void;
     updateEdgeRole: (edgeId: string, role: string) => void;
     // TypeQL タブ用
     nodes: Node<TypeDBNodeData>[];
@@ -28,6 +46,7 @@ export const Sidebar = ({
     deleteNode,
     deleteEdge,
     updateNodeLabel,
+    updateNodeValueType,
     updateEdgeRole,
     nodes,
     edges,
@@ -70,6 +89,15 @@ export const Sidebar = ({
             if (e.key === 'Escape') { setEditingLabel(originalLabelRef.current); }
         },
         [handleLabelConfirm]
+    );
+
+    // value 型変更：ドロップダウン選択は即時確定なので onValueChange で直接 dispatch する
+    const handleValueTypeChange = useCallback(
+        (value: string) => {
+            if (!selectedNode) return;
+            updateNodeValueType(selectedNode.id, value as AttributeValueType);
+        },
+        [selectedNode, updateNodeValueType]
     );
 
     // ロール名確定
@@ -124,6 +152,39 @@ export const Sidebar = ({
                                     Enter で確定 / Esc でキャンセル
                                 </p>
                             </div>
+
+                            {/* Attribute ノード選択時のみ value 型セレクトを表示 */}
+                            {selectedNode.data.typeDBType === 'attribute' && (
+                                <div className="flex flex-col gap-1.5">
+                                    <Label htmlFor="value-type" className="text-xs font-medium">
+                                        Value Type
+                                    </Label>
+                                    <Select
+                                        value={selectedNode.data.valueType ?? 'string'}
+                                        onValueChange={handleValueTypeChange}
+                                    >
+                                        <SelectTrigger
+                                            id="value-type"
+                                            className="h-8 text-sm"
+                                            aria-label="value type"
+                                        >
+                                            <SelectValue />
+                                        </SelectTrigger>
+                                        <SelectContent>
+                                            {VALUE_TYPE_OPTIONS.map((opt) => (
+                                                <SelectItem
+                                                    key={opt.value}
+                                                    value={opt.value}
+                                                    className="text-sm"
+                                                >
+                                                    {opt.label}
+                                                </SelectItem>
+                                            ))}
+                                        </SelectContent>
+                                    </Select>
+                                </div>
+                            )}
+
                             <div className="flex flex-col gap-1.5">
                                 <span className="text-xs font-medium text-muted-foreground">Type</span>
                                 <span className="text-xs px-2 py-0.5 rounded-full bg-muted w-fit capitalize">

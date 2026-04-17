@@ -25,6 +25,7 @@ export default function App() {
   const deleteNode = useStore((s) => s.deleteNode);
   const addNode = useStore((s) => s.addNode);
   const updateNodeLabel = useStore((s) => s.updateNodeLabel);
+  const updateNodeValueType = useStore((s) => s.updateNodeValueType);
   const updateEdgeRole = useStore((s) => s.updateEdgeRole);
   const deleteEdge = useStore((s) => s.deleteEdge);
   const narration = useStore((s) => s.narration);
@@ -126,6 +127,7 @@ export default function App() {
               deleteNode={handleDeleteNode}
               deleteEdge={handleDeleteEdge}
               updateNodeLabel={updateNodeLabel}
+              updateNodeValueType={updateNodeValueType}
               updateEdgeRole={updateEdgeRole}
               nodes={nodes}
               edges={edges}

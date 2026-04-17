@@ -119,8 +119,10 @@ export function generateTypeQL(
     if (attributeNodes.length > 0) {
         lines.push('  # Attribute 定義');
         for (const node of attributeNodes) {
-            // value 型は将来 TypeDBNodeData に追加予定。現状は string をデフォルトとする
-            lines.push(`  ${node.data.label} sub attribute, value string;`);
+            // valueType フィールドを参照し、未指定の場合は "string" にフォールバックする
+            // 後方互換: localStorage から復元した古いデータも "string" として扱われる
+            const vt = node.data.valueType ?? 'string';
+            lines.push(`  ${node.data.label} sub attribute, value ${vt};`);
         }
         lines.push('');
     }

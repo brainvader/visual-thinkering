@@ -1,13 +1,10 @@
 // src/components/Sidebar.edge.test.tsx
-// エッジインスペクターの failed test
-// ← Sidebar に selectedEdge props と編集 UI が未実装なので全件 fail する
-
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Sidebar } from './Sidebar';
-import type { Edge } from '@xyflow/react';
-import type { TypeDBEdgeData } from '@/types';
+import type { Node, Edge } from '@xyflow/react';
+import type { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 
 const mockEdge: Edge<TypeDBEdgeData> = {
     id: 'e-1',
@@ -16,53 +13,38 @@ const mockEdge: Edge<TypeDBEdgeData> = {
     data: { role: 'employee' },
 };
 
+// 全 render 呼び出しで共通の必須 props をまとめたヘルパー
+const defaultProps = {
+    selectedNode: null as Node<TypeDBNodeData> | null,
+    selectedEdge: null as Edge<TypeDBEdgeData> | null,
+    deleteNode: vi.fn(),
+    deleteEdge: vi.fn(),
+    updateNodeLabel: vi.fn(),
+    updateNodeValueType: vi.fn(),
+    updateEdgeRole: vi.fn(),
+    nodes: [],
+    edges: [],
+};
+
 beforeEach(() => {
     vi.clearAllMocks();
 });
 
 describe('Sidebar: エッジインスペクター', () => {
     it('selectedEdge が存在するときエッジインスペクターが表示されること', () => {
-        render(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={mockEdge}
-                deleteNode={vi.fn()}
-                deleteEdge={vi.fn()}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={vi.fn()}
-            />
-        );
-        // "Edge ID:" というラベルで特定する
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} />);
         expect(screen.getByText(/edge id/i)).toBeInTheDocument();
     });
 
     it('ロール名入力フィールドに現在のロール名が表示されること', () => {
-        render(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={mockEdge}
-                deleteNode={vi.fn()}
-                deleteEdge={vi.fn()}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={vi.fn()}
-            />
-        );
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} />);
         const input = screen.getByRole('textbox', { name: /role/i });
         expect(input).toHaveValue('employee');
     });
 
     it('Enter でロール名が確定されること', async () => {
         const mockUpdateRole = vi.fn();
-        render(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={mockEdge}
-                deleteNode={vi.fn()}
-                deleteEdge={vi.fn()}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={mockUpdateRole}
-            />
-        );
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} updateEdgeRole={mockUpdateRole} />);
         const input = screen.getByRole('textbox', { name: /role/i });
         await userEvent.clear(input);
         await userEvent.type(input, 'worker');
@@ -72,16 +54,7 @@ describe('Sidebar: エッジインスペクター', () => {
 
     it('空文字列で Enter を押しても updateEdgeRole が呼ばれないこと', async () => {
         const mockUpdateRole = vi.fn();
-        render(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={mockEdge}
-                deleteNode={vi.fn()}
-                deleteEdge={vi.fn()}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={mockUpdateRole}
-            />
-        );
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} updateEdgeRole={mockUpdateRole} />);
         const input = screen.getByRole('textbox', { name: /role/i });
         await userEvent.clear(input);
         await userEvent.keyboard('{Enter}');
@@ -90,16 +63,7 @@ describe('Sidebar: エッジインスペクター', () => {
 
     it('Escape でキャンセルされること', async () => {
         const mockUpdateRole = vi.fn();
-        render(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={mockEdge}
-                deleteNode={vi.fn()}
-                deleteEdge={vi.fn()}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={mockUpdateRole}
-            />
-        );
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} updateEdgeRole={mockUpdateRole} />);
         const input = screen.getByRole('textbox', { name: /role/i });
         await userEvent.clear(input);
         await userEvent.type(input, 'changed');
@@ -110,16 +74,7 @@ describe('Sidebar: エッジインスペクター', () => {
 
     it('Delete ボタンで deleteEdge が呼ばれること', async () => {
         const mockDeleteEdge = vi.fn();
-        render(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={mockEdge}
-                deleteNode={vi.fn()}
-                deleteEdge={mockDeleteEdge}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={vi.fn()}
-            />
-        );
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} deleteEdge={mockDeleteEdge} />);
         await userEvent.click(screen.getByRole('button', { name: /delete/i }));
         expect(mockDeleteEdge).toHaveBeenCalledWith('e-1');
     });
@@ -132,40 +87,17 @@ describe('Sidebar: エッジインスペクター', () => {
             data: { role: 'employer' },
         };
         const { rerender } = render(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={mockEdge}
-                deleteNode={vi.fn()}
-                deleteEdge={vi.fn()}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={vi.fn()}
-            />
+            <Sidebar {...defaultProps} selectedEdge={mockEdge} />
         );
         rerender(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={anotherEdge}
-                deleteNode={vi.fn()}
-                deleteEdge={vi.fn()}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={vi.fn()}
-            />
+            <Sidebar {...defaultProps} selectedEdge={anotherEdge} />
         );
         const input = screen.getByRole('textbox', { name: /role/i });
         expect(input).toHaveValue('employer');
     });
 
     it('selectedNode も selectedEdge も null のとき案内メッセージが表示されること', () => {
-        render(
-            <Sidebar
-                selectedNode={null}
-                selectedEdge={null}
-                deleteNode={vi.fn()}
-                deleteEdge={vi.fn()}
-                updateNodeLabel={vi.fn()}
-                updateEdgeRole={vi.fn()}
-            />
-        );
+        render(<Sidebar {...defaultProps} />);
         expect(screen.getByText(/select a node or edge/i)).toBeInTheDocument();
     });
 });
