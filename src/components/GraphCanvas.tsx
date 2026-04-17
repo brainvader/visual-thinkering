@@ -25,6 +25,7 @@ import { Button } from '@/components/ui/button';
 // nodeTypes はモジュールレベルの定数を import する
 // コンポーネント内で定義すると再レンダリングのたびに再生成され React Flow が無視する
 import { nodeTypes } from './nodes';
+import { edgeTypes } from './edges';
 import { isValidTypeDBConnection } from '@/lib/connectionRules';
 import { useOwnershipBounds } from '@/hooks/useOwnershipBounds';
 
@@ -218,6 +219,7 @@ function GraphCanvasInner({
                 onEdgeContextMenu={handleEdgeContextMenu}
                 onPaneContextMenu={handlePaneContextMenu}
                 nodeTypes={nodeTypes}
+                edgeTypes={edgeTypes}
                 connectionMode={ConnectionMode.Loose}
                 isValidConnection={(connection) =>
                     isValidTypeDBConnection(connection, nodes)
