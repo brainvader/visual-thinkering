@@ -1,0 +1,134 @@
+{
+  "version": 1,
+  "savedAt": "2026-04-17T00:00:00.000Z",
+  "nodes": [
+    {
+      "id": "4067593d-1034-426d-9b0d-0cdc6fea9afa",
+      "data": {
+        "label": "id",
+        "typeDBType": "attribute",
+        "isAbstract": false,
+        "valueType": "long"
+      },
+      "position": { "x": 2149.0209521465285, "y": 1520.3742835510443 },
+      "type": "attribute"
+    },
+    {
+      "id": "437a23f6-66a0-4545-9182-2ebcb885e9da",
+      "data": {
+        "label": "empolyee",
+        "typeDBType": "entity",
+        "isAbstract": false
+      },
+      "position": { "x": 1897.6852665673734, "y": 1233.137274202327 },
+      "type": "entity"
+    },
+    {
+      "id": "99715cf2-2889-4ab4-a494-3baff21c93ac",
+      "data": {
+        "label": "employment",
+        "typeDBType": "relation",
+        "isAbstract": false
+      },
+      "position": { "x": 2147.3371983623288, "y": 1212.9334339845643 },
+      "type": "relation"
+    },
+    {
+      "id": "649dd592-7a8a-44a9-a979-fa6f6db4ac54",
+      "data": {
+        "label": "company",
+        "typeDBType": "entity",
+        "isAbstract": false
+      },
+      "position": { "x": 2457.3673807023138, "y": 1251.0331291057873 },
+      "type": "entity"
+    },
+    {
+      "id": "18dab49d-b149-48a5-b815-8787280cf97d",
+      "data": {
+        "label": "name",
+        "typeDBType": "attribute",
+        "isAbstract": false
+      },
+      "position": { "x": 2268.5118578836004, "y": 1520.0748165087111 },
+      "type": "attribute"
+    },
+    {
+      "id": "19438377-4d89-49d6-8ea1-7b05554ae21d",
+      "data": {
+        "label": "salary",
+        "typeDBType": "attribute",
+        "isAbstract": false,
+        "valueType": "double"
+      },
+      "position": { "x": 2176.2798858991687, "y": 1106.280718795223 },
+      "type": "attribute"
+    }
+  ],
+  "edges": [
+    {
+      "id": "xy-edge__437a23f6-66a0-4545-9182-2ebcb885e9dabottom-source-4067593d-1034-426d-9b0d-0cdc6fea9afatop-target",
+      "source": "437a23f6-66a0-4545-9182-2ebcb885e9da",
+      "sourceHandle": "bottom-source",
+      "target": "4067593d-1034-426d-9b0d-0cdc6fea9afa",
+      "targetHandle": "top-target",
+      "markerEnd": { "type": "arrowclosed", "width": 20, "height": 20 },
+      "data": { "role": "owns" }
+    },
+    {
+      "id": "xy-edge__649dd592-7a8a-44a9-a979-fa6f6db4ac54bottom-source-18dab49d-b149-48a5-b815-8787280cf97dtop-target",
+      "source": "649dd592-7a8a-44a9-a979-fa6f6db4ac54",
+      "sourceHandle": "bottom-source",
+      "target": "18dab49d-b149-48a5-b815-8787280cf97d",
+      "targetHandle": "top-target",
+      "markerEnd": { "type": "arrowclosed", "width": 20, "height": 20 }
+    },
+    {
+      "id": "xy-edge__649dd592-7a8a-44a9-a979-fa6f6db4ac54bottom-source-4067593d-1034-426d-9b0d-0cdc6fea9afatop-target",
+      "source": "649dd592-7a8a-44a9-a979-fa6f6db4ac54",
+      "sourceHandle": "bottom-source",
+      "target": "4067593d-1034-426d-9b0d-0cdc6fea9afa",
+      "targetHandle": "top-target",
+      "markerEnd": { "type": "arrowclosed", "width": 20, "height": 20 },
+      "data": { "role": "own" }
+    },
+    {
+      "id": "xy-edge__437a23f6-66a0-4545-9182-2ebcb885e9dabottom-source-18dab49d-b149-48a5-b815-8787280cf97dtop-target",
+      "source": "437a23f6-66a0-4545-9182-2ebcb885e9da",
+      "sourceHandle": "bottom-source",
+      "target": "18dab49d-b149-48a5-b815-8787280cf97d",
+      "targetHandle": "top-target",
+      "markerEnd": { "type": "arrowclosed", "width": 20, "height": 20 }
+    },
+    {
+      "id": "xy-edge__99715cf2-2889-4ab4-a494-3baff21c93actop-source-19438377-4d89-49d6-8ea1-7b05554ae21dbottom-source",
+      "source": "99715cf2-2889-4ab4-a494-3baff21c93ac",
+      "sourceHandle": "top-source",
+      "target": "19438377-4d89-49d6-8ea1-7b05554ae21d",
+      "targetHandle": "bottom-source",
+      "markerEnd": { "type": "arrowclosed", "width": 20, "height": 20 },
+      "data": { "role": "have" }
+    },
+    {
+      "id": "xy-edge__99715cf2-2889-4ab4-a494-3baff21c93acleft-source-437a23f6-66a0-4545-9182-2ebcb885e9daright-source",
+      "source": "99715cf2-2889-4ab4-a494-3baff21c93ac",
+      "sourceHandle": "left-source",
+      "target": "437a23f6-66a0-4545-9182-2ebcb885e9da",
+      "targetHandle": "right-source",
+      "type": "role",
+      "markerEnd": { "type": "arrowclosed", "width": 20, "height": 20 },
+      "data": { "role": "employee" }
+    },
+    {
+      "id": "xy-edge__649dd592-7a8a-44a9-a979-fa6f6db4ac54left-source-99715cf2-2889-4ab4-a494-3baff21c93acright-target",
+      "source": "649dd592-7a8a-44a9-a979-fa6f6db4ac54",
+      "sourceHandle": "left-source",
+      "target": "99715cf2-2889-4ab4-a494-3baff21c93ac",
+      "targetHandle": "right-target",
+      "type": "role",
+      "markerEnd": { "type": "arrowclosed", "width": 20, "height": 20 },
+      "data": { "role": "employer" }
+    }
+  ],
+  "narration": ""
+}

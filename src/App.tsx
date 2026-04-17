@@ -2,6 +2,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { AppHeader } from './AppHeader';
 import { useFileSave } from './hooks/useFileSave';
+import { useFileLoad } from '@/hooks/useFileLoad';
 import { Node, Edge } from '@xyflow/react';
 import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 import '@xyflow/react/dist/style.css';
@@ -41,6 +42,12 @@ export default function App() {
 
   // ファイル保存フック
   const { save, filePath } = useFileSave();
+  const { load } = useFileLoad();
+
+  // アプリ起動時にファイルを読み込む
+  useEffect(() => {
+    load();
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node<TypeDBNodeData>) => {
     setSelectedNode(node);
