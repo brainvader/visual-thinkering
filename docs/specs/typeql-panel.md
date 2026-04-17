@@ -1,13 +1,13 @@
 # Spec: TypeQL 出力パネル
 
 > ステータス: **Implemented**
-> 対象ブランチ: `feat/typeql-panel`（予定）
 > 関連ファイル:
 >
-> - `src/lib/typeql.ts`（既存・要修正）
-> - `src/lib/typeql.test.ts`（既存・要追加）
-> - `src/components/TypeQLPanel.tsx`（新規）
-> - `src/App.tsx`（パネル配置）
+> - `src/lib/typeql.ts`
+> - `src/lib/typeql.test.ts`
+> - `src/components/TypeQLPanel.tsx`
+> - `src/components/Sidebar.tsx`
+> - `src/App.tsx`
 
 ---
 
@@ -19,7 +19,7 @@
 
 ## 表示場所
 
-現在の4パネルレイアウトの **右パネル下部** または **Sidebar 内のタブ** に配置する。
+Sidebar を「Inspector」と「TypeQL」の2タブ構成にする。
 
 ```
 ┌──────────────┬────────────────────┬─────────────────┐
@@ -30,31 +30,13 @@
 └──────────────┴────────────────────┴─────────────────┘
 ```
 
-Sidebar を「Inspector」と「TypeQL」の2タブ構成にする。
-
 ---
 
-## TypeQL 生成ロジックの修正
+## TypeQL 生成ロジック
 
-現在の `generateTypeQL` は不完全。以下を修正する。
+`generateTypeQL(nodes, edges, options?)` でグラフから TypeQL を生成する。
 
-### 現状の問題点
-
-```typescript
-// 問題1: define キーワードが各行に付く（TypeQL は1つの define ブロックにまとめる）
-`define ${n.data.label} sub entity;`
-
-// 問題2: owns（Attribute 所有）が生成されない
-// Entity → Attribute エッジが無視されている
-
-// 問題3: Attribute 型定義が生成されない
-// name sub attribute, value string; のような定義がない
-
-// 問題4: ロール名が空のエッジを relates に含めてしまう
-const roles = edges.filter(...).map((e) => e.data?.role || 'unknown');
-```
-
-### 修正後の出力例
+### 出力例
 
 ```typeql
 define
@@ -62,6 +44,7 @@ define
   # Attribute 定義（依存される側を先に定義）
   name sub attribute, value string;
   start-date sub attribute, value datetime;
+  age sub attribute, value long;
 
   # Entity 定義
   Person sub entity,
@@ -90,7 +73,17 @@ define
 
 ### Attribute の value 型
 
-現状 `TypeDBNodeData` に value 型フィールドがない。TypeQL 出力では `value string` をデフォルトとする（将来 Sidebar で編集できるようにする）。
+`TypeDBNodeData.valueType` フィールドを参照する。未指定の場合は `"string"` にフォールバック（localStorage からの旧データとの後方互換）。
+
+```typescript
+type AttributeValueType = "string" | "long" | "double" | "boolean" | "datetime";
+
+// 生成コード
+const vt = node.data.valueType ?? "string";
+lines.push(`  ${node.data.label} sub attribute, value ${vt};`);
+```
+
+Sidebar の Inspector タブで Attribute ノード選択時にセレクトから変更できる。変更は即時反映（Enter 確定不要）。
 
 ---
 
@@ -115,6 +108,22 @@ define
 - **シンタックスハイライト**: TypeQL のキーワード（`define`, `sub`, `relates`, `plays`, `owns`）に色を付ける
 - **警告表示**: ロール名未設定のエッジがある場合に警告メッセージを表示する
 
+### Sidebar Inspector — value 型セレクト
+
+Attribute ノード選択時、Label フィールドの下に表示する。
+
+```
+Label:  [name          ]
+        Enter で確定 / Esc でキャンセル
+
+Value:  [string        ▼]   ← Attribute 選択時のみ表示
+```
+
+- shadcn/ui の `<Select>` を使用
+- 選択肢: `string` / `long` / `double` / `boolean` / `datetime`
+- 変更は即時 store に反映（ドロップダウン選択 = 意図の確定）
+- Entity / Relation ノード選択時は表示しない
+
 ### 警告表示
 
 以下の場合に警告を表示する：
@@ -128,63 +137,42 @@ define
 
 ---
 
-## Sidebar のタブ化
-
-現状 Sidebar は Inspector のみ。TypeQL タブを追加する。
-
-```tsx
-// Sidebar のタブ構成
-<Tabs defaultValue="inspector">
-  <TabsList>
-    <TabsTrigger value="inspector">Inspector</TabsTrigger>
-    <TabsTrigger value="typeql">TypeQL</TabsTrigger>
-  </TabsList>
-  <TabsContent value="inspector">{/* 既存のインスペクター UI */}</TabsContent>
-  <TabsContent value="typeql">
-    <TypeQLPanel nodes={nodes} edges={edges} />
-  </TabsContent>
-</Tabs>
-```
-
----
-
 ## ファイル構成
 
 ```
 src/
+├── types/index.ts             ← AttributeValueType 型、TypeDBNodeData.valueType フィールド
+├── store.ts                   ← updateNodeValueType アクション
 ├── lib/
-│   ├── typeql.ts         ← 修正（生成ロジック改善）
-│   └── typeql.test.ts    ← 追加（新ルールのテスト）
+│   ├── typeql.ts              ← valueType を参照した Attribute 定義生成
+│   └── typeql.test.ts         ← valueType 対応テスト（makeNode に extra 引数追加）
 └── components/
-    ├── Sidebar.tsx        ← 修正（タブ追加）
-    └── TypeQLPanel.tsx    ← 新規
+    ├── Sidebar.tsx            ← value 型セレクト（Attribute 選択時のみ表示）
+    ├── Sidebar.test.tsx       ← defaultProps ヘルパー導入、valueType テスト追加
+    ├── Sidebar.edge.test.tsx  ← defaultProps ヘルパーに updateNodeValueType を追加
+    └── TypeQLPanel.tsx        ← 変更なし
 ```
 
 ---
 
-## テスト方針（Red → Green）
+## テスト方針
 
-### `src/lib/typeql.test.ts`（既存に追加）
+### `src/lib/typeql.test.ts`
 
-```
-現状の修正:
-- define ブロックが1つにまとまること
-- ロール名なしエッジは relates に含まれないこと
+- `makeNode` に `extra: Partial<TypeDBNodeData>` 引数を追加
+- `valueType` 未指定のとき `value string` がデフォルトで付くこと
+- `valueType: 'long'` のとき `value long` が出力されること（double / boolean / datetime も同様）
+- 複数の Attribute が異なる value 型を持てること
 
-新規追加:
-- Entity → Attribute エッジが owns として出力されること
-- Relation → Attribute エッジが owns として出力されること
-- Attribute ノードが sub attribute として定義されること
-- ロール名なしエッジに対して警告情報が返されること
-- 複数の役割を持つ Relation が正しく relates を列挙すること
-- グラフが空のとき空文字列を返すこと
-```
+### `src/components/Sidebar.test.tsx`
 
-### `src/components/TypeQLPanel.test.tsx`（新規）
+- Attribute ノード選択時に Value Type セレクトが表示されること
+- Entity ノード選択時に Value Type セレクトが表示されないこと
+- `valueType` 未指定のとき `string` がデフォルト選択されていること
+- `valueType: 'long'` のノードのとき `long` が選択されていること
+- セレクト変更後の表示追従（`rerender` で検証）
 
-```
-- nodes/edges が渡されたとき TypeQL が表示されること
-- Copy ボタンをクリックするとクリップボードにコピーされること
-- ロール名未設定エッジがあるとき警告が表示されること
-- nodes/edges が更新されたとき TypeQL が再生成されること
-```
+> **Radix UI Select と jsdom の制約:**
+> `<SelectContent>` はポータルに描画されるため、`userEvent.click` でオプションを選択できない。
+> `onValueChange` コールバックの呼び出し検証は `rerender` で `selectedNode.data.valueType` を
+> 変更した際の表示追従で代替する。実際の store 更新は `store.test.ts` で担保する。
