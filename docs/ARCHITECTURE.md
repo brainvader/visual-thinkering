@@ -43,7 +43,7 @@ type TypeDBMetaType = "entity" | "relation" | "attribute";
 
 ```
 ┌────────────────────────────────────────────────────────┐
-│ AppHeader（ファイル名・保存ボタン）                     │
+│ AppHeader（ファイル名・Save・Save As ボタン）            │
 ├──────────────┬─────────────────────────┬───────────────┤
 │              │                         │               │
 │  Narration   │      GraphCanvas        │   Sidebar     │
@@ -53,7 +53,7 @@ type TypeDBMetaType = "entity" | "relation" | "attribute";
 └──────────────┴─────────────────────────┴───────────────┘
 ```
 
-- **ヘッダー（AppHeader）**: ファイル名表示・保存操作
+- **ヘッダー（AppHeader）**: ファイル名表示・Save（上書き）・Save As（別名保存）
 - **左（Narration）**: 原材料。ユーザーの思考の原文
 - **中央上（GraphCanvas）**: 生成物。構造化された知識
 - **中央下（LLMAssistant）**: 変換器。語りからグラフへの橋渡し
@@ -96,9 +96,15 @@ localStorage に vt-save-path があるか？
 編集中
     → persist により localStorage へ自動同期（作業バッファ）
 
-保存（Ctrl+S / 保存ボタン）
+保存（Ctrl+S / Save ボタン）
     ├─ vt-save-path あり → writeTextFile で上書き
     └─ vt-save-path なし → save ダイアログ → パス記憶 → writeTextFile
+
+名前をつけて保存（Save As ボタン）
+    → 常に save ダイアログを開く
+    → プロジェクト名に連番サフィックスを付与（"HR管理 001" など）
+    → 新パスを vt-save-path に上書き記憶
+    → store.projectName をコピー名に更新
 ```
 
 ### ファイルフォーマット（JSON）
@@ -107,6 +113,8 @@ localStorage に vt-save-path があるか？
 {
   "version": 1,
   "savedAt": "ISO8601",
+  "name": "プロジェクト名",
+  "description": "説明文",
   "nodes": [...],
   "edges": [...],
   "narration": "..."
@@ -115,6 +123,24 @@ localStorage に vt-save-path があるか？
 
 localStorage の `persist` フォーマット（`{ state: {...}, version: N }`）とは意図的に分離している。前者はファイル交換用、後者は Zustand の内部キャッシュ用。
 
+`name` / `description` は後から追加されたフィールドのため、旧ファイルには存在しない場合がある。`useFileLoad` 側でファイル名をフォールバック値として使う後方互換処理が入っている。
+
+### Save As のコピー名ロジック（src/lib/copyName.ts）
+
+```
+nextCopyName("HR管理", ["HR管理 001", "HR管理 002"]) → "HR管理 003"
+```
+
+`recentProjectsStore` の `name` 一覧を走査して最大番号を検出し、+1 した3桁ゼロ埋め番号をサフィックスとして付与する純粋関数。一覧上でコピー元と区別できるようにする目的。
+
+### localStorage キー一覧
+
+| キー                      | 内容                                     |
+| ------------------------- | ---------------------------------------- |
+| `visual-thinkering-graph` | nodes / edges / narration の作業バッファ |
+| `vt-save-path`            | 最後に保存したファイルの絶対パス         |
+| `vt-recent-projects`      | 最近開いたファイルの履歴（最大10件）     |
+
 ### resources/default.json
 
 `src-tauri/resources/default.json` としてアプリに同梱するサンプル兼初期データ。`tauri.conf.json` の `bundle.resources` に登録することでビルド時にバンドルされる。`vt-save-path` が未設定の初回起動時に読み込まれる。
@@ -122,7 +148,6 @@ localStorage の `persist` フォーマット（`{ state: {...}, version: N }`�
 ### 将来の拡張（未実装）
 
 - **デフォルト保存先**: dev/build 環境を切り替えつつ `appDataDir` または `documentDir` を自動選択する仕組み（現在はダイアログのみ）
-- **プロジェクト管理**: 複数ファイルをプロジェクト単位で管理する画面（`docs/specs/project-management.md` 参照）
 
 ---
 
@@ -144,7 +169,6 @@ localStorage の `persist` フォーマット（`{ state: {...}, version: N }`�
 
 詳細なスペックは `docs/specs/` に個別ファイルで管理する。
 
-- `docs/specs/project-management.md` — 複数プロジェクト管理
 - `docs/specs/llm-integration.md` — ナラティブからノード自動抽出
 - `docs/specs/typedb-connection.md` — TypeDB サーバーへの直接接続
 - `docs/specs/schema-validation.md` — TypeQL 整合性チェック
