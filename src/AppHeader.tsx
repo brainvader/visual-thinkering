@@ -1,15 +1,16 @@
 // src/components/AppHeader.tsx
 //
 // アプリ上部のヘッダーバー。
-// ファイル名の表示・保存ボタンを提供する。
+// ファイル名の表示・保存ボタン・名前をつけて保存ボタンを提供する。
 // onBack が渡された場合は「← 一覧へ」ボタンも表示する。
 
-import { Save, ChevronLeft } from 'lucide-react';
+import { Save, SaveAll, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 
 interface AppHeaderProps {
     filePath: string | null;
     onSave: () => void;
+    onSaveAs: () => void;
     // エディタ画面でのみ渡す。未指定時はボタンを表示しない。
     onBack?: () => void;
 }
@@ -19,7 +20,7 @@ function extractFileName(path: string): string {
     return path.split(/[\\/]/).pop() ?? path;
 }
 
-export function AppHeader({ filePath, onSave, onBack }: AppHeaderProps) {
+export function AppHeader({ filePath, onSave, onSaveAs, onBack }: AppHeaderProps) {
     const fileName = filePath ? extractFileName(filePath) : null;
 
     return (
@@ -47,15 +48,25 @@ export function AppHeader({ filePath, onSave, onBack }: AppHeaderProps) {
                 {fileName ?? '未保存'}
             </span>
 
-            {/* 右側：保存ボタン */}
-            <Button
-                variant="ghost"
-                size="icon"
-                aria-label="Save"
-                onClick={onSave}
-            >
-                <Save size={16} />
-            </Button>
+            {/* 右側：保存ボタン群 */}
+            <div className="flex items-center gap-1">
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Save"
+                    onClick={onSave}
+                >
+                    <Save size={16} />
+                </Button>
+                <Button
+                    variant="ghost"
+                    size="icon"
+                    aria-label="Save As"
+                    onClick={onSaveAs}
+                >
+                    <SaveAll size={16} />
+                </Button>
+            </div>
         </header>
     );
 }
