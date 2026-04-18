@@ -42,7 +42,7 @@ src/
 │   ├── ProjectListPage.tsx    # プロジェクト一覧画面（path="/"）
 │   └── EditorPage.tsx         # エディタ画面ラッパー（path="/editor"）
 ├── components/
-│   ├── AppHeader.tsx          # ヘッダーバー：ファイル名・保存・一覧へ戻るボタン
+│   ├── AppHeader.tsx          # ヘッダーバー：ファイル名・Save・Save As・一覧へ戻るボタン
 │   ├── GraphCanvas.tsx        # React Flow キャンバス・カスタムコンテキストメニュー
 │   ├── Sidebar.tsx            # Inspector/TypeQL の2タブ構成
 │   ├── TypeQLPanel.tsx        # TypeQL 出力・シンタックスハイライト・Copy・警告

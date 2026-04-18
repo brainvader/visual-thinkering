@@ -49,7 +49,7 @@ export default function App({ onBack }: AppProps) {
   const [selectedEdge, setSelectedEdge] = React.useState<Edge<TypeDBEdgeData> | null>(null);
 
   // ファイル保存フック
-  const { save, filePath } = useFileSave();
+  const { save, saveAs, filePath } = useFileSave();
   const { load } = useFileLoad();
 
   const [closeDialogOpen, setCloseDialogOpen] = React.useState(false);
@@ -123,7 +123,7 @@ export default function App({ onBack }: AppProps) {
   return (
     <div className="h-screen w-screen overflow-hidden bg-background flex flex-col">
       {/* ヘッダーバーを最上部に追加 */}
-      <AppHeader filePath={filePath} onSave={save} onBack={onBack} />
+      <AppHeader filePath={filePath} onSave={save} onSaveAs={saveAs} onBack={onBack} />
 
       {/* 未保存確認ダイアログ */}
       <UnsavedDialog
