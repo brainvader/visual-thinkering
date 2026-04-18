@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useFileLoad } from './useFileLoad';
 import { useStore } from '@/store';
+import { open as openDialog } from '@tauri-apps/plugin-dialog';
 
 // vi.mock はホイストされるため、ファクトリ内で変数を参照できない。
 // モックのデフォルト戻り値はファクトリ内で直接定義し、
@@ -35,8 +36,13 @@ vi.mock('@tauri-apps/api/path', () => ({
     resolveResource: vi.fn(),
 }));
 
+vi.mock('@tauri-apps/plugin-dialog', () => ({
+    open: vi.fn(),
+}));
+
 const { readTextFile } = await import('@tauri-apps/plugin-fs');
 const { resolveResource } = await import('@tauri-apps/api/path');
+const { open: mockOpenDialog } = await import('@tauri-apps/plugin-dialog');
 
 beforeEach(() => {
     localStorage.clear();
@@ -118,5 +124,55 @@ describe('useFileLoad: markClean 連携', () => {
         await act(async () => { await result.current.load(); });
 
         expect(useStore.getState().isDirty).toBe(true);
+    });
+});
+
+describe('useFileLoad: open()', () => {
+    it('ダイアログでファイルを選択するとストアに展開されること', async () => {
+        vi.mocked(mockOpenDialog).mockResolvedValue('/user/selected/schema.json');
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => {
+            await result.current.open();
+        });
+
+        expect(mockOpenDialog).toHaveBeenCalled();
+        expect(readTextFile).toHaveBeenCalledWith('/user/selected/schema.json');
+        expect(useStore.getState().nodes).toHaveLength(1);
+    });
+
+    it('ダイアログをキャンセルしたとき何も起きないこと', async () => {
+        vi.mocked(mockOpenDialog).mockResolvedValue(null);
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => {
+            await result.current.open();
+        });
+
+        expect(readTextFile).not.toHaveBeenCalled();
+        expect(useStore.getState().nodes).toHaveLength(0);
+    });
+
+    it('open() 成功後に vt-save-path が更新されること', async () => {
+        vi.mocked(mockOpenDialog).mockResolvedValue('/user/selected/schema.json');
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => {
+            await result.current.open();
+        });
+
+        expect(localStorage.getItem('vt-save-path')).toBe('/user/selected/schema.json');
+    });
+
+    it('open() 成功後に isDirty が false になること', async () => {
+        vi.mocked(mockOpenDialog).mockResolvedValue('/user/selected/schema.json');
+        useStore.getState().markDirty();
+        const { result } = renderHook(() => useFileLoad());
+
+        await act(async () => {
+            await result.current.open();
+        });
+
+        expect(useStore.getState().isDirty).toBe(false);
     });
 });
