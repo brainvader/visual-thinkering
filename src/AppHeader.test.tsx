@@ -1,11 +1,20 @@
 // src/components/AppHeader.test.tsx
 //
 // AppHeader コンポーネントのテスト
+// Tooltip は jsdom でポータルが動作しないため vi.mock で素通しにする
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { AppHeader } from './AppHeader';
+
+// Tooltip 系は jsdom 環境で動作しないため素通しコンポーネントに差し替える
+vi.mock('@/components/ui/tooltip', () => ({
+    TooltipProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    Tooltip: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    TooltipTrigger: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+    TooltipContent: () => null,
+}));
 
 describe('AppHeader: 表示', () => {
     it('アプリ名が表示されること', () => {

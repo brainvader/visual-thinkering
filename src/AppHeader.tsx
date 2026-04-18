@@ -6,6 +6,12 @@
 
 import { Save, SaveAll, ChevronLeft } from 'lucide-react';
 import { Button } from '@/components/ui/button';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from '@/components/ui/tooltip';
 
 interface AppHeaderProps {
     filePath: string | null;
@@ -49,24 +55,41 @@ export function AppHeader({ filePath, onSave, onSaveAs, onBack }: AppHeaderProps
             </span>
 
             {/* 右側：保存ボタン群 */}
-            <div className="flex items-center gap-1">
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Save"
-                    onClick={onSave}
-                >
-                    <Save size={16} />
-                </Button>
-                <Button
-                    variant="ghost"
-                    size="icon"
-                    aria-label="Save As"
-                    onClick={onSaveAs}
-                >
-                    <SaveAll size={16} />
-                </Button>
-            </div>
+            <TooltipProvider delayDuration={500}>
+                <div className="flex items-center gap-1">
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Save"
+                                onClick={onSave}
+                            >
+                                <Save size={16} />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>保存 (Ctrl+S)</p>
+                        </TooltipContent>
+                    </Tooltip>
+
+                    <Tooltip>
+                        <TooltipTrigger asChild>
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                aria-label="Save As"
+                                onClick={onSaveAs}
+                            >
+                                <SaveAll size={16} />
+                            </Button>
+                        </TooltipTrigger>
+                        <TooltipContent>
+                            <p>名前をつけて保存</p>
+                        </TooltipContent>
+                    </Tooltip>
+                </div>
+            </TooltipProvider>
         </header>
     );
 }
