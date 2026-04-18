@@ -37,6 +37,10 @@ interface GraphState {
     isDirty: boolean;
     markDirty: () => void;
     markClean: () => void;
+    projectName: string;
+    projectDescription: string;
+    setProjectMeta: (name: string, description: string) => void;
+
 }
 
 export const useStore = create<GraphState>()(
@@ -118,6 +122,11 @@ export const useStore = create<GraphState>()(
             isDirty: false,
             markDirty: () => set({ isDirty: true }),
             markClean: () => set({ isDirty: false }),
+
+            projectName: '',
+            projectDescription: '',
+            setProjectMeta: (name, description) =>
+                set({ projectName: name, projectDescription: description }),
         }),
         {
             name: 'visual-thinkering-graph',

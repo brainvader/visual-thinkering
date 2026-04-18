@@ -7,6 +7,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useFileSave } from './useFileSave';
 import { useStore } from '@/store';
+import { useRecentProjectsStore } from '@/store/recentProjectsStore';
 
 vi.mock('@tauri-apps/plugin-fs', () => ({
     writeTextFile: vi.fn().mockResolvedValue(undefined),
@@ -159,5 +160,40 @@ describe('useFileSave: markClean 連携', () => {
         await act(async () => { await result.current.save(); });
 
         expect(useStore.getState().isDirty).toBe(true);
+    });
+});
+
+describe('useFileSave: addRecent() 連携', () => {
+    beforeEach(() => {
+        useRecentProjectsStore.setState({ recents: [] });
+    });
+
+    it('保存成功時に addRecent() が呼ばれること', async () => {
+        localStorage.setItem('vt-save-path', '/mock/path/project.json');
+
+        // name / description を持つストア状態を用意する
+        useStore.setState({
+            nodes: [],
+            edges: [],
+            narration: '',
+            projectName: 'HRシステム',
+            projectDescription: '人事管理',
+        });
+
+        const { result } = renderHook(() => useFileSave());
+        await act(async () => { await result.current.save(); });
+
+        const { recents } = useRecentProjectsStore.getState();
+        expect(recents).toHaveLength(1);
+        expect(recents[0].filePath).toBe('/mock/path/project.json');
+        expect(recents[0].name).toBe('HRシステム');
+    });
+
+    it('保存キャンセル時は addRecent() が呼ばれないこと', async () => {
+        vi.mocked(dialogSave).mockResolvedValueOnce(null);
+        const { result } = renderHook(() => useFileSave());
+        await act(async () => { await result.current.save(); });
+
+        expect(useRecentProjectsStore.getState().recents).toHaveLength(0);
     });
 });

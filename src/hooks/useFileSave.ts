@@ -8,6 +8,7 @@ import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { save as dialogSave } from '@tauri-apps/plugin-dialog';
 import { toast } from 'sonner';
 import { useStore } from '@/store';
+import { useRecentProjectsStore } from '@/store/recentProjectsStore';
 
 const SAVE_PATH_KEY = 'vt-save-path';
 
@@ -30,11 +31,14 @@ export function useFileSave(): UseFileSaveReturn {
     );
 
     const save = async () => {
-        const { nodes, edges, narration } = useStore.getState();
+        const { nodes, edges, narration, projectName, projectDescription } =
+            useStore.getState();
 
-        const data: SaveFileData = {
+        const data = {
             version: 1,
             savedAt: new Date().toISOString(),
+            name: projectName,
+            description: projectDescription,
             nodes,
             edges,
             narration,
@@ -48,10 +52,7 @@ export function useFileSave(): UseFileSaveReturn {
                 defaultPath: 'default.json',
                 filters: [{ name: 'JSON', extensions: ['json'] }],
             });
-
-            // キャンセルされた場合は何もしない
             if (!selected) return;
-
             targetPath = selected;
         }
 
@@ -60,14 +61,16 @@ export function useFileSave(): UseFileSaveReturn {
             localStorage.setItem(SAVE_PATH_KEY, targetPath);
             setFilePath(targetPath);
 
-            await writeTextFile(targetPath, json);
-            localStorage.setItem(SAVE_PATH_KEY, targetPath);
-            setFilePath(targetPath);
-
-            // 保存成功時に dirty フラグをリセットする
             useStore.getState().markClean();
 
-            // フルパスをトーストに表示する
+            // 履歴に追加する
+            useRecentProjectsStore.getState().addRecent({
+                filePath: targetPath,
+                name: projectName,
+                description: projectDescription,
+                lastOpenedAt: new Date().toISOString(),
+            });
+
             toast.success('保存しました', {
                 description: targetPath,
                 duration: 2000,

@@ -9,11 +9,15 @@ import { readTextFile } from '@tauri-apps/plugin-fs';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
 import { resolveResource } from '@tauri-apps/api/path';
 import { useStore } from '@/store';
+import { useRecentProjectsStore } from '@/store/recentProjectsStore';
+
 
 // ファイルフォーマットの型（useFileSave と対称）
 interface SaveFileData {
     version: number;
     savedAt: string;
+    name?: string;        // 旧フォーマットは存在しない場合あり
+    description?: string; // 同上
     nodes: unknown[];
     edges: unknown[];
     narration: string;
@@ -31,14 +35,28 @@ async function loadFromPath(filePath: string): Promise<void> {
     const raw = await readTextFile(filePath);
     const data: SaveFileData = JSON.parse(raw);
 
+    // ファイル名をフォールバック名として使う（旧フォーマット対応）
+    const fileName = filePath.split(/[\\/]/).pop() ?? filePath;
+    const name = data.name ?? fileName;
+    const description = data.description ?? '';
+
     useStore.setState({
         nodes: data.nodes as never,
         edges: data.edges as never,
         narration: data.narration,
+        projectName: name,
+        projectDescription: description,
     });
 
-    // 読み込み完了時に dirty フラグをリセットする
     useStore.getState().markClean();
+
+    // 履歴に追加する
+    useRecentProjectsStore.getState().addRecent({
+        filePath,
+        name,
+        description,
+        lastOpenedAt: new Date().toISOString(),
+    });
 }
 
 export function useFileLoad(): UseFileLoadReturn {

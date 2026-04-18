@@ -8,6 +8,7 @@ import { renderHook, act } from '@testing-library/react';
 import { useFileLoad } from './useFileLoad';
 import { useStore } from '@/store';
 import { open as openDialog } from '@tauri-apps/plugin-dialog';
+import { useRecentProjectsStore } from '@/store/recentProjectsStore';
 
 // vi.mock はホイストされるため、ファクトリ内で変数を参照できない。
 // モックのデフォルト戻り値はファクトリ内で直接定義し、
@@ -174,5 +175,43 @@ describe('useFileLoad: open()', () => {
         });
 
         expect(useStore.getState().isDirty).toBe(false);
+    });
+});
+
+describe('useFileLoad: addRecent() 連携', () => {
+    beforeEach(() => {
+        useRecentProjectsStore.setState({ recents: [] });
+        // name / description を含む JSON を返す
+        vi.mocked(readTextFile).mockResolvedValue(JSON.stringify({
+            version: 1,
+            savedAt: '2026-04-17T00:00:00.000Z',
+            name: 'HRシステム',
+            description: '人事管理',
+            nodes: [],
+            edges: [],
+            narration: '',
+        }));
+    });
+
+    it('load() 成功時に addRecent() が呼ばれること', async () => {
+        localStorage.setItem('vt-save-path', '/mock/hr.json');
+        const { result } = renderHook(() => useFileLoad());
+        await act(async () => { await result.current.load(); });
+
+        const { recents } = useRecentProjectsStore.getState();
+        expect(recents).toHaveLength(1);
+        expect(recents[0].filePath).toBe('/mock/hr.json');
+        expect(recents[0].name).toBe('HRシステム');
+    });
+
+    it('open() 成功時に addRecent() が呼ばれること', async () => {
+        vi.mocked(mockOpenDialog).mockResolvedValue('/mock/selected.json');
+        const { result } = renderHook(() => useFileLoad());
+        await act(async () => { await result.current.open(); });
+
+        const { recents } = useRecentProjectsStore.getState();
+        expect(recents).toHaveLength(1);
+        expect(recents[0].filePath).toBe('/mock/selected.json');
+        expect(recents[0].name).toBe('HRシステム');
     });
 });
