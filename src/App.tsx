@@ -21,7 +21,12 @@ import { useCloseGuard } from './hooks/useCloseGuard';
 import { UnsavedDialog } from './components/UnsavedDialog';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
-export default function App() {
+// App コンポーネントの props 定義を追加
+interface AppProps {
+  onBack?: () => void;
+}
+
+export default function App({ onBack }: AppProps) {
   // 無限ループ防止のため個別に state を取得
   const nodes = useStore((s) => s.nodes);
   const edges = useStore((s) => s.edges);
@@ -118,7 +123,7 @@ export default function App() {
   return (
     <div className="h-screen w-screen overflow-hidden bg-background flex flex-col">
       {/* ヘッダーバーを最上部に追加 */}
-      <AppHeader filePath={filePath} onSave={save} />
+      <AppHeader filePath={filePath} onSave={save} onBack={onBack} />
 
       {/* 未保存確認ダイアログ */}
       <UnsavedDialog

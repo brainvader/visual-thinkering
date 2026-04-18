@@ -34,3 +34,22 @@ describe('AppHeader: 保存ボタン', () => {
         expect(onSave).toHaveBeenCalledOnce();
     });
 });
+
+describe('AppHeader: 戻るボタン', () => {
+    it('onBack が渡されたとき「← 一覧へ」ボタンが表示されること', () => {
+        render(<AppHeader filePath={null} onSave={vi.fn()} onBack={vi.fn()} />);
+        expect(screen.getByRole('button', { name: /一覧へ/ })).toBeInTheDocument();
+    });
+
+    it('onBack が渡されないとき「← 一覧へ」ボタンが表示されないこと', () => {
+        render(<AppHeader filePath={null} onSave={vi.fn()} />);
+        expect(screen.queryByRole('button', { name: /一覧へ/ })).not.toBeInTheDocument();
+    });
+
+    it('「← 一覧へ」ボタンをクリックすると onBack が呼ばれること', async () => {
+        const onBack = vi.fn();
+        render(<AppHeader filePath={null} onSave={vi.fn()} onBack={onBack} />);
+        await userEvent.click(screen.getByRole('button', { name: /一覧へ/ }));
+        expect(onBack).toHaveBeenCalledOnce();
+    });
+});
