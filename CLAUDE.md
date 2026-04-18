@@ -32,46 +32,46 @@ pnpm dlx shadcn@latest add <component>  # shadcn コンポーネント追加
 
 ```
 src/
-├── main.tsx                   # エントリーポイント・<Toaster /> 配置
-├── App.tsx                    # ルート：4パネルレイアウト・selectedNode/selectedEdge 管理
+├── main.tsx                   # エントリーポイント・MemoryRouter・<Toaster /> 配置
+├── App.tsx                    # エディタ本体：4パネルレイアウト・selectedNode/selectedEdge 管理
+├── App.css                    # グローバルスタイル
 ├── store.ts                   # Zustand + persist（localStorage・作業バッファ）
 ├── types/index.ts             # TypeDB 型定義
+├── vite-env.d.ts
+├── pages/
+│   ├── ProjectListPage.tsx    # プロジェクト一覧画面（path="/"）
+│   └── EditorPage.tsx         # エディタ画面ラッパー（path="/editor"）
 ├── components/
-│   ├── AppHeader.tsx          # ヘッダーバー：ファイル名表示・保存ボタン
+│   ├── AppHeader.tsx          # ヘッダーバー：ファイル名・保存・一覧へ戻るボタン
 │   ├── GraphCanvas.tsx        # React Flow キャンバス・カスタムコンテキストメニュー
 │   ├── Sidebar.tsx            # Inspector/TypeQL の2タブ構成
 │   ├── TypeQLPanel.tsx        # TypeQL 出力・シンタックスハイライト・Copy・警告
 │   ├── NarrationPanel.tsx     # ナラティブ入力
 │   ├── LLMAssistant.tsx       # LLM 命令インターフェース
 │   ├── UnsavedDialog.tsx      # 未保存確認ダイアログ（3ボタン）
+│   ├── ProjectCard.tsx        # 最近開いたプロジェクトのカード
+│   ├── NewProjectDialog.tsx   # 新規プロジェクト作成ダイアログ
 │   ├── nodes/                 # カスタムノード
 │   │   ├── EntityNode.tsx     # 角丸矩形・青系
 │   │   ├── RelationNode.tsx   # SVGひし形・緑系
 │   │   ├── AttributeNode.tsx  # 楕円・橙系
 │   │   └── index.ts           # nodeTypes export
-│   └── ui/                    # shadcn/ui プリミティブ（sonner 含む）
+│   ├── edges/
+│   │   ├── RoleEdge.tsx       # カスタムエッジ
+│   │   └── index.ts           # edgeTypes export
+│   └── ui/                    # shadcn/ui プリミティブ
 ├── hooks/
-│   ├── useFileSave.ts         # ファイル保存（初回ダイアログ・上書き・toast通知・markClean）
-│   ├── useFileLoad.ts         # ファイル読み込み（起動時・default.json フォールバック・markClean）
+│   ├── useFileSave.ts         # ファイル保存（addRecent()連携・name/description書き込み）
+│   ├── useFileLoad.ts         # ファイル読み込み（open()追加・addRecent()連携）
 │   ├── useCloseGuard.ts       # アプリ終了時の未保存確認（onCloseRequested 連携）
 │   └── useOwnershipBounds.ts  # owns 関係のバウンディングボックス計算
+├── store/
+│   └── recentProjectsStore.ts # 最近開いたプロジェクト履歴（persist・最大10件）
 ├── lib/
 │   ├── typeql.ts              # グラフ → TypeQL 変換
 │   ├── connectionRules.ts     # TypeDB 接続制限（isValidTypeDBConnection）
 │   └── utils.ts               # cn() ユーティリティ
 └── test/setup.ts              # ResizeObserver class モック
-src-tauri/
-├── src/lib.rs                 # Tauri プラグイン登録（fs・dialog・opener）
-├── Cargo.toml                 # tauri-plugin-fs・tauri-plugin-dialog 追加済み
-├── capabilities/default.json  # fs・dialog パーミッション設定
-├── resources/
-│   └── default.json           # サンプル兼初期データ（bundle 対象）
-└── tauri.conf.json            # bundle.resources に resources/default.json 登録済み
-docs/
-├── ARCHITECTURE.md            # 設計決定の背景
-├── TESTING.md                 # テスト戦略
-├── STATUS.md                  # 実装状況一覧（機能単位）
-└── specs/                     # 機能仕様（実装の起点）
 ```
 
 ## Architecture

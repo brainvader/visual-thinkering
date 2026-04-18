@@ -11,6 +11,7 @@
     "fs:scope-app-recursive",
     "fs:scope-home-recursive",
     "dialog:allow-save",
+    "dialog:allow-open",
     "core:window:allow-close",
     "core:window:allow-destroy"
   ]
