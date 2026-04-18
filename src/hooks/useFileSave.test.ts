@@ -17,7 +17,6 @@ vi.mock('@tauri-apps/plugin-dialog', () => ({
     save: vi.fn().mockResolvedValue('/mock/path/default.json'),
 }));
 
-// toast の呼び出しを検証できるようにモックする
 vi.mock('sonner', () => ({
     toast: {
         success: vi.fn(),
@@ -31,7 +30,8 @@ const { toast } = await import('sonner');
 
 beforeEach(() => {
     localStorage.clear();
-    useStore.setState({ nodes: [], edges: [], narration: '' });
+    useStore.setState({ nodes: [], edges: [], narration: '', projectName: '', projectDescription: '' });
+    useRecentProjectsStore.setState({ recents: [] });
     vi.clearAllMocks();
     vi.mocked(dialogSave).mockResolvedValue('/mock/path/default.json');
     vi.mocked(writeTextFile).mockResolvedValue(undefined);
@@ -166,10 +166,6 @@ describe('useFileSave: markClean 連携', () => {
 });
 
 describe('useFileSave: addRecent() 連携', () => {
-    beforeEach(() => {
-        useRecentProjectsStore.setState({ recents: [] });
-    });
-
     it('保存成功時に addRecent() が呼ばれること', async () => {
         localStorage.setItem('vt-save-path', '/mock/path/project.json');
         useStore.setState({
@@ -202,7 +198,6 @@ describe('useFileSave: addRecent() 連携', () => {
 
 describe('useFileSave: saveAs() 基本動作', () => {
     it('常にダイアログが開くこと（パスあり状態でも）', async () => {
-        // パスが記憶済みの状態でも saveAs はダイアログを開く
         localStorage.setItem('vt-save-path', '/existing/path/schema.json');
         const { result } = renderHook(() => useFileSave());
 
@@ -246,6 +241,57 @@ describe('useFileSave: saveAs() 基本動作', () => {
     });
 });
 
+describe('useFileSave: saveAs() コピー名', () => {
+    it('既存コピーがない場合は "projectName 001" で保存されること', async () => {
+        vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/schema.json');
+        useStore.setState({ projectName: 'HRシステム' });
+
+        const { result } = renderHook(() => useFileSave());
+        await act(async () => { await result.current.saveAs(); });
+
+        const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+        expect(JSON.parse(written).name).toBe('HRシステム 001');
+    });
+
+    it('既存コピーがある場合は番号がインクリメントされること', async () => {
+        vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/schema.json');
+        useStore.setState({ projectName: 'HRシステム' });
+        useRecentProjectsStore.setState({
+            recents: [
+                { filePath: '/a.json', name: 'HRシステム 001', description: '', lastOpenedAt: '' },
+                { filePath: '/b.json', name: 'HRシステム 002', description: '', lastOpenedAt: '' },
+            ],
+        });
+
+        const { result } = renderHook(() => useFileSave());
+        await act(async () => { await result.current.saveAs(); });
+
+        const written = vi.mocked(writeTextFile).mock.calls[0][1] as string;
+        expect(JSON.parse(written).name).toBe('HRシステム 003');
+    });
+
+    it('保存後に store の projectName がコピー名に更新されること', async () => {
+        vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/schema.json');
+        useStore.setState({ projectName: 'HRシステム' });
+
+        const { result } = renderHook(() => useFileSave());
+        await act(async () => { await result.current.saveAs(); });
+
+        expect(useStore.getState().projectName).toBe('HRシステム 001');
+    });
+
+    it('addRecent() がコピー名で呼ばれること', async () => {
+        vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/schema.json');
+        useStore.setState({ projectName: 'HRシステム' });
+
+        const { result } = renderHook(() => useFileSave());
+        await act(async () => { await result.current.saveAs(); });
+
+        const { recents } = useRecentProjectsStore.getState();
+        expect(recents[0].name).toBe('HRシステム 001');
+    });
+});
+
 describe('useFileSave: saveAs() キャンセル', () => {
     it('ダイアログをキャンセルすると writeTextFile が呼ばれないこと', async () => {
         vi.mocked(dialogSave).mockResolvedValueOnce(null);
@@ -264,6 +310,16 @@ describe('useFileSave: saveAs() キャンセル', () => {
         await act(async () => { await result.current.saveAs(); });
 
         expect(localStorage.getItem('vt-save-path')).toBe('/existing/path/schema.json');
+    });
+
+    it('ダイアログをキャンセルしても store の projectName が変化しないこと', async () => {
+        vi.mocked(dialogSave).mockResolvedValueOnce(null);
+        useStore.setState({ projectName: 'HRシステム' });
+        const { result } = renderHook(() => useFileSave());
+
+        await act(async () => { await result.current.saveAs(); });
+
+        expect(useStore.getState().projectName).toBe('HRシステム');
     });
 });
 
@@ -310,37 +366,5 @@ describe('useFileSave: saveAs() markClean 連携', () => {
         await act(async () => { await result.current.saveAs(); });
 
         expect(useStore.getState().isDirty).toBe(true);
-    });
-});
-
-describe('useFileSave: saveAs() addRecent() 連携', () => {
-    beforeEach(() => {
-        useRecentProjectsStore.setState({ recents: [] });
-    });
-
-    it('保存成功時に addRecent() が呼ばれること', async () => {
-        vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/project.json');
-        useStore.setState({
-            nodes: [],
-            edges: [],
-            narration: '',
-            projectName: 'HRシステム',
-            projectDescription: '人事管理',
-        });
-
-        const { result } = renderHook(() => useFileSave());
-        await act(async () => { await result.current.saveAs(); });
-
-        const { recents } = useRecentProjectsStore.getState();
-        expect(recents).toHaveLength(1);
-        expect(recents[0].filePath).toBe('/new/path/project.json');
-    });
-
-    it('ダイアログキャンセル時は addRecent() が呼ばれないこと', async () => {
-        vi.mocked(dialogSave).mockResolvedValueOnce(null);
-        const { result } = renderHook(() => useFileSave());
-        await act(async () => { await result.current.saveAs(); });
-
-        expect(useRecentProjectsStore.getState().recents).toHaveLength(0);
     });
 });

@@ -1,8 +1,8 @@
 // src/hooks/useFileSave.ts
 //
 // ファイル保存ロジックを担うカスタムフック。
-// save()   : パスが記憶済みなら上書き、未記憶なら初回ダイアログを開く
-// saveAs() : 常にダイアログを開き、選択したパスに保存してパスを更新する
+// save()   : パスが記憶済みなら上書き、なければダイアログを開く
+// saveAs() : 常にダイアログを開き、コピー名（連番）で保存してパスを更新する
 // 保存成功・失敗時に Sonner トーストで通知する。
 
 import { useState } from 'react';
@@ -11,6 +11,7 @@ import { save as dialogSave } from '@tauri-apps/plugin-dialog';
 import { toast } from 'sonner';
 import { useStore } from '@/store';
 import { useRecentProjectsStore } from '@/store/recentProjectsStore';
+import { nextCopyName } from '@/lib/copyName';
 
 const SAVE_PATH_KEY = 'vt-save-path';
 
@@ -20,8 +21,8 @@ interface UseFileSaveReturn {
     filePath: string | null;
 }
 
-// 保存するデータを組み立てて JSON 文字列を返す
-function buildJson(): string {
+// 保存するデータを組み立てて JSON 文字列を返す（name を上書き可能）
+function buildJson(overrideName?: string): string {
     const { nodes, edges, narration, projectName, projectDescription } =
         useStore.getState();
 
@@ -29,7 +30,7 @@ function buildJson(): string {
         {
             version: 1,
             savedAt: new Date().toISOString(),
-            name: projectName,
+            name: overrideName ?? projectName,
             description: projectDescription,
             nodes,
             edges,
@@ -43,17 +44,18 @@ function buildJson(): string {
 // 書き込み成功後の共通後処理
 function afterSave(
     targetPath: string,
+    name: string,
+    description: string,
     setFilePath: (path: string) => void
 ): void {
     localStorage.setItem(SAVE_PATH_KEY, targetPath);
     setFilePath(targetPath);
     useStore.getState().markClean();
 
-    const { projectName, projectDescription } = useStore.getState();
     useRecentProjectsStore.getState().addRecent({
         filePath: targetPath,
-        name: projectName,
-        description: projectDescription,
+        name,
+        description,
         lastOpenedAt: new Date().toISOString(),
     });
 
@@ -81,16 +83,24 @@ export function useFileSave(): UseFileSaveReturn {
             targetPath = selected;
         }
 
+        const { projectName, projectDescription } = useStore.getState();
+
         try {
             await writeTextFile(targetPath, buildJson());
-            afterSave(targetPath, setFilePath);
+            afterSave(targetPath, projectName, projectDescription, setFilePath);
         } catch (error) {
             toast.error('保存に失敗しました', { description: String(error) });
         }
     };
 
-    // 常にダイアログを開き、選択したパスに保存してパスを更新する
+    // 常にダイアログを開き、コピー名（連番）で保存してパスを更新する
     const saveAs = async () => {
+        const { projectName, projectDescription } = useStore.getState();
+
+        // recentProjects の name 一覧から次のコピー名を生成する
+        const existingNames = useRecentProjectsStore.getState().recents.map(r => r.name);
+        const copyName = nextCopyName(projectName, existingNames);
+
         // 現在のファイル名をデフォルトパスに使う
         const defaultPath = filePath
             ? filePath.split(/[\\/]/).pop() ?? 'schema.json'
@@ -103,8 +113,10 @@ export function useFileSave(): UseFileSaveReturn {
         if (!selected) return;
 
         try {
-            await writeTextFile(selected, buildJson());
-            afterSave(selected, setFilePath);
+            await writeTextFile(selected, buildJson(copyName));
+            // store の projectName をコピー名に更新する
+            useStore.getState().setProjectMeta(copyName, projectDescription);
+            afterSave(selected, copyName, projectDescription, setFilePath);
         } catch (error) {
             toast.error('保存に失敗しました', { description: String(error) });
         }

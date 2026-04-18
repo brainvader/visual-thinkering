@@ -1,7 +1,7 @@
 // src/components/AppHeader.test.tsx
 //
 // AppHeader コンポーネントのテスト
-// Tooltip は jsdom でポータルが動作しないため vi.mock で素通しにする
+// Tooltip は jsdom 環境でポータルが動作しないため vi.mock で素通しにする
 
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
