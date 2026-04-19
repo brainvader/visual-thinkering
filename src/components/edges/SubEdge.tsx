@@ -11,8 +11,8 @@ import { TypeDBEdgeData } from '@/types';
 
 type SubEdgeProps = EdgeProps<Edge<TypeDBEdgeData>>;
 
-// SVG defs に登録する中空三角マーカーの ID
 const MARKER_ID = 'sub-edge-marker';
+const MARKER_ID_SELECTED = 'sub-edge-marker-selected';
 
 export function SubEdge({
     id,
@@ -23,6 +23,7 @@ export function SubEdge({
     sourcePosition,
     targetPosition,
     style,
+    selected,
 }: SubEdgeProps) {
     const [edgePath] = getBezierPath({
         sourceX,
@@ -33,10 +34,14 @@ export function SubEdge({
         targetPosition,
     });
 
+    // 選択状態でストローク色・太さを切り替える
+    const strokeColor = selected ? '#1d4ed8' : 'var(--color-muted-foreground, #94a3b8)';
+    const strokeWidth = selected ? 2.5 : 1.5;
+    const markerId = selected ? MARKER_ID_SELECTED : MARKER_ID;
+
     return (
         <>
-            {/* SVG defs: 中空三角マーカーを定義する */}
-            {/* React Flow は複数エッジで同一 defs が重複しても問題ない */}
+            {/* SVG defs: 通常時と選択時で色が異なる中空三角マーカーを定義する */}
             <defs>
                 <marker
                     id={MARKER_ID}
@@ -47,11 +52,27 @@ export function SubEdge({
                     orient="auto"
                     markerUnits="userSpaceOnUse"
                 >
-                    {/* UML 継承の中空三角（塗りなし・枠線あり） */}
                     <polygon
                         points="0,0 12,6 0,12"
                         fill="white"
-                        stroke="currentColor"
+                        stroke="var(--color-muted-foreground, #94a3b8)"
+                        strokeWidth="1.5"
+                    />
+                </marker>
+                <marker
+                    id={MARKER_ID_SELECTED}
+                    markerWidth="12"
+                    markerHeight="12"
+                    refX="10"
+                    refY="6"
+                    orient="auto"
+                    markerUnits="userSpaceOnUse"
+                >
+                    {/* 選択時は矢印も青色にする */}
+                    <polygon
+                        points="0,0 12,6 0,12"
+                        fill="white"
+                        stroke="#1d4ed8"
                         strokeWidth="1.5"
                     />
                 </marker>
@@ -61,10 +82,11 @@ export function SubEdge({
                 path={edgePath}
                 style={{
                     ...style,
-                    stroke: 'var(--color-muted-foreground, #94a3b8)',
+                    stroke: strokeColor,
+                    strokeWidth,
                     strokeDasharray: '5 3',
                 }}
-                markerEnd={`url(#${MARKER_ID})`}
+                markerEnd={`url(#${markerId})`}
             />
         </>
     );
