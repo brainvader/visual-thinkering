@@ -5,7 +5,6 @@ import { RelationNode } from './RelationNode';
 import type { NodeProps, Node as FlowNode } from '@xyflow/react';
 import type { TypeDBNodeData } from '@/types';
 
-// Handle は ReactFlowProvider なしでは動作しないためモックする
 vi.mock('@xyflow/react', async (importOriginal) => {
     const actual = await importOriginal<typeof import('@xyflow/react')>();
     return {
@@ -14,10 +13,13 @@ vi.mock('@xyflow/react', async (importOriginal) => {
     };
 });
 
-// React Flow の NodeProps 最小モック
-const makeProps = (label: string, selected = false): NodeProps<FlowNode<TypeDBNodeData>> => ({
+const makeProps = (
+    label: string,
+    selected = false,
+    isAbstract = false
+): NodeProps<FlowNode<TypeDBNodeData>> => ({
     id: 'test-id',
-    data: { label, typeDBType: 'relation', isAbstract: false },
+    data: { label, typeDBType: 'relation', isAbstract },
     selected,
     type: 'relation',
     zIndex: 0,
@@ -49,5 +51,15 @@ describe('RelationNode', () => {
     it('selected=false のときハイライト属性が付かないこと', () => {
         const { container } = render(<RelationNode {...makeProps('Employment', false)} />);
         expect(container.firstChild).not.toHaveAttribute('data-selected', 'true');
+    });
+
+    it('isAbstract=true のとき "abstract" バッジが表示されること', () => {
+        render(<RelationNode {...makeProps('Employment', false, true)} />);
+        expect(screen.getByText('abstract')).toBeInTheDocument();
+    });
+
+    it('isAbstract=false のとき "abstract" バッジが表示されないこと', () => {
+        render(<RelationNode {...makeProps('Employment', false, false)} />);
+        expect(screen.queryByText('abstract')).toBeNull();
     });
 });

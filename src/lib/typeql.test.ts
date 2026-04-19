@@ -1,6 +1,4 @@
 // src/lib/typeql.test.ts
-// generateTypeQL の failed test
-// ← typeql.ts の生成ロジックが未修正なので複数件 fail する
 
 import { describe, it, expect } from 'vitest';
 import { generateTypeQL } from './typeql';
@@ -14,7 +12,6 @@ const makeNode = (
     id: string,
     label: string,
     typeDBType: TypeDBNodeData['typeDBType'],
-    // 追加データを受け取れるようにする（valueType などのテストに使用）
     extra: Partial<TypeDBNodeData> = {}
 ): FlowNode<TypeDBNodeData> => ({
     id,
@@ -27,13 +24,18 @@ const makeEdge = (
     id: string,
     source: string,
     target: string,
-    role = ''
+    role = '',
+    edgeType: TypeDBEdgeData['edgeType'] = 'role'
 ): FlowEdge<TypeDBEdgeData> => ({
     id,
     source,
     target,
-    data: { role },
+    data: { role, edgeType },
 });
+
+// sub エッジ用ヘルパー
+const makeSubEdge = (id: string, source: string, target: string): FlowEdge<TypeDBEdgeData> =>
+    makeEdge(id, source, target, '', 'sub');
 
 // -----------------------------------------------
 // テストデータ
@@ -51,7 +53,6 @@ describe('generateTypeQL: 基本構造', () => {
 
     it('define ブロックが1つにまとまること（各行に define が付かない）', () => {
         const result = generateTypeQL([person], []);
-        // 先頭の "define" は1つだけ
         const defineCount = (result.match(/\bdefine\b/g) ?? []).length;
         expect(defineCount).toBe(1);
     });
@@ -83,7 +84,7 @@ describe('generateTypeQL: Relation 定義', () => {
     });
 
     it('ロール名なしエッジは relates に含まれないこと', () => {
-        const edge = makeEdge('e1', 'n1', 'n3', ''); // ロール名なし
+        const edge = makeEdge('e1', 'n1', 'n3', '');
         const result = generateTypeQL([person, employment], [edge]);
         expect(result).not.toContain('relates');
     });
@@ -101,7 +102,6 @@ describe('generateTypeQL: plays 定義', () => {
     it('Entity → Relation（ロール名あり）が plays として出力されること', () => {
         const edge = makeEdge('e1', 'n1', 'n3', 'employee');
         const result = generateTypeQL([person, employment], [edge]);
-        // plays は Entity 定義の中に埋め込まれる
         expect(result).toContain('plays Employment:employee');
     });
 
@@ -179,9 +179,76 @@ describe('generateTypeQL: Attribute 定義', () => {
     });
 });
 
+describe('generateTypeQL: abstract フラグ', () => {
+    it('isAbstract: true の Entity に ", abstract" が含まれること', () => {
+        const abstractPerson = makeNode('n1', 'Person', 'entity', { isAbstract: true });
+        const result = generateTypeQL([abstractPerson], []);
+        expect(result).toContain('Person sub entity, abstract');
+    });
+
+    it('isAbstract: false の Entity に abstract が含まれないこと', () => {
+        const result = generateTypeQL([person], []);
+        expect(result).not.toContain('abstract');
+    });
+
+    it('isAbstract: true の Relation に ", abstract" が含まれること', () => {
+        const abstractRel = makeNode('n3', 'Employment', 'relation', { isAbstract: true });
+        const result = generateTypeQL([abstractRel], []);
+        expect(result).toContain('Employment sub relation, abstract');
+    });
+
+    it('isAbstract: true の Attribute に ", abstract" が含まれること', () => {
+        const abstractAttr = makeNode('n4', 'name', 'attribute', { isAbstract: true });
+        const result = generateTypeQL([abstractAttr], []);
+        expect(result).toContain('name sub attribute, abstract');
+    });
+});
+
+describe('generateTypeQL: sub エッジ（継承）', () => {
+    it('Entity→Entity の sub エッジが "B sub A;" として出力されること', () => {
+        const abstractPerson = makeNode('n1', 'Person', 'entity', { isAbstract: true });
+        const employee = makeNode('n2', 'Employee', 'entity');
+        const edge = makeSubEdge('e1', 'n2', 'n1'); // Employee sub Person
+        const result = generateTypeQL([abstractPerson, employee], [edge]);
+        expect(result).toContain('Employee sub Person');
+    });
+
+    it('Relation→Relation の sub エッジが "B sub A;" として出力されること', () => {
+        const baseRel = makeNode('n1', 'BaseRelation', 'relation', { isAbstract: true });
+        const childRel = makeNode('n2', 'ChildRelation', 'relation');
+        const edge = makeSubEdge('e1', 'n2', 'n1');
+        const result = generateTypeQL([baseRel, childRel], [edge]);
+        expect(result).toContain('ChildRelation sub BaseRelation');
+    });
+
+    it('Attribute→Attribute の sub エッジが "B sub A;" として出力されること', () => {
+        const baseName = makeNode('n1', 'abstract-name', 'attribute', { isAbstract: true });
+        const childName = makeNode('n2', 'full-name', 'attribute');
+        const edge = makeSubEdge('e1', 'n2', 'n1');
+        const result = generateTypeQL([baseName, childName], [edge]);
+        expect(result).toContain('full-name sub abstract-name');
+    });
+
+    it('sub エッジのとき親ノードが子ノードより先に出力されること', () => {
+        const abstractPerson = makeNode('n1', 'Person', 'entity', { isAbstract: true });
+        const employee = makeNode('n2', 'Employee', 'entity');
+        const edge = makeSubEdge('e1', 'n2', 'n1');
+        const result = generateTypeQL([employee, abstractPerson], [edge]);
+        // Person（親）が Employee（子）より先に出力される
+        expect(result.indexOf('Person sub entity')).toBeLessThan(result.indexOf('Employee sub Person'));
+    });
+
+    it('sub でないエッジ（role）は通常通り plays/owns として出力されること', () => {
+        const edge = makeEdge('e1', 'n1', 'n3', 'employee', 'role');
+        const result = generateTypeQL([person, employment], [edge]);
+        expect(result).toContain('plays Employment:employee');
+        expect(result).not.toContain('Person sub Employment');
+    });
+});
+
 describe('generateTypeQL: 警告情報', () => {
     it('ロール名未設定エッジがあるとき警告情報が返されること', () => {
-        const edge = makeEdge('e1', 'n1', 'n3', ''); // plays だがロール名なし
+        const edge = makeEdge('e1', 'n1', 'n3', '');
         const { warnings } = generateTypeQL(
             [person, employment],
             [edge],
@@ -201,7 +268,7 @@ describe('generateTypeQL: 警告情報', () => {
     });
 
     it('ロール名が TypeQL キーワードと同名のとき警告が返されること', () => {
-        const edge = makeEdge('e1', 'n1', 'n3', 'plays'); // "plays" はキーワード
+        const edge = makeEdge('e1', 'n1', 'n3', 'plays');
         const { warnings } = generateTypeQL(
             [person, employment],
             [edge],
@@ -218,33 +285,38 @@ describe('generateTypeQL: 警告情報', () => {
             [edge],
             { includeWarnings: true }
         );
-        // 警告はあるが TypeQL は生成される
         expect(typeql).toContain('plays Employment:plays');
+    });
+
+    it('循環継承（A sub B, B sub A）のとき警告が返されること', () => {
+        const nodeA = makeNode('n1', 'A', 'entity');
+        const nodeB = makeNode('n2', 'B', 'entity');
+        const e1 = makeSubEdge('e1', 'n1', 'n2'); // A sub B
+        const e2 = makeSubEdge('e2', 'n2', 'n1'); // B sub A
+        const { warnings } = generateTypeQL([nodeA, nodeB], [e1, e2], { includeWarnings: true });
+        expect(warnings.length).toBeGreaterThan(0);
+        expect(warnings[0].message).toContain('循環');
     });
 });
 
 describe('generateTypeQL: 出力順序', () => {
     it('Attribute が Entity より先に定義されること', () => {
-        const edge = makeEdge('e1', 'n1', 'n4'); // Person owns name
+        const edge = makeEdge('e1', 'n1', 'n4');
         const result = generateTypeQL([person, name], [edge]);
-        const attrPos = result.indexOf('name sub attribute');
-        const entityPos = result.indexOf('Person sub entity');
-        expect(attrPos).toBeLessThan(entityPos);
+        expect(result.indexOf('name sub attribute')).toBeLessThan(result.indexOf('Person sub entity'));
     });
 
     it('Attribute が Relation より先に定義されること', () => {
-        const edge = makeEdge('e1', 'n3', 'n5'); // Employment owns start-date
+        const edge = makeEdge('e1', 'n3', 'n5');
         const result = generateTypeQL([employment, startDate], [edge]);
-        const attrPos = result.indexOf('start-date sub attribute');
-        const relationPos = result.indexOf('Employment sub relation');
-        expect(attrPos).toBeLessThan(relationPos);
+        expect(result.indexOf('start-date sub attribute')).toBeLessThan(result.indexOf('Employment sub relation'));
     });
 
     it('Entity + Relation + Attribute の複合グラフが正しく出力されること', () => {
-        const e1 = makeEdge('e1', 'n1', 'n3', 'employee'); // Person plays Employment
-        const e2 = makeEdge('e2', 'n2', 'n3', 'employer'); // Company plays Employment
-        const e3 = makeEdge('e3', 'n1', 'n4');             // Person owns name
-        const e4 = makeEdge('e4', 'n3', 'n5');             // Employment owns start-date
+        const e1 = makeEdge('e1', 'n1', 'n3', 'employee');
+        const e2 = makeEdge('e2', 'n2', 'n3', 'employer');
+        const e3 = makeEdge('e3', 'n1', 'n4');
+        const e4 = makeEdge('e4', 'n3', 'n5');
 
         const result = generateTypeQL(
             [person, company, employment, name, startDate],

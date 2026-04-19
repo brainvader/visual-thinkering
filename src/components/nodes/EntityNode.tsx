@@ -8,7 +8,7 @@ export function EntityNode({ data, selected }: NodeProps<FlowNode<TypeDBNodeData
             data-selected={selected ? 'true' : undefined}
             className={[
                 // ベーススタイル: 角丸矩形
-                'min-w-30 min-h-12 px-4 py-2',
+                'relative min-w-30 min-h-12 px-4 py-2',
                 'flex items-center justify-center',
                 'rounded-lg border-2 bg-blue-50',
                 'text-sm font-medium text-blue-900',
@@ -19,8 +19,23 @@ export function EntityNode({ data, selected }: NodeProps<FlowNode<TypeDBNodeData
                     : 'border-blue-400',
             ].join(' ')}
         >
-            {/* 上下左右それぞれに source/target の両方を配置
-                id を付けて区別することで全方向から双方向接続が可能になる */}
+            {/* abstract フラグが true のとき右上にバッジを表示する */}
+            {data.isAbstract && (
+                <span className="
+                    absolute -top-2 -right-2
+                    px-1 py-0
+                    text-[9px] font-mono font-semibold
+                    bg-blue-100 border border-blue-400
+                    text-blue-600
+                    rounded
+                    leading-tight
+                    select-none
+                ">
+                    abstract
+                </span>
+            )}
+
+            {/* 上下左右それぞれに source/target の両方を配置 */}
             <Handle type="target" position={Position.Top} id="top-target" />
             <Handle type="source" position={Position.Top} id="top-source" />
             <Handle type="target" position={Position.Bottom} id="bottom-target" />

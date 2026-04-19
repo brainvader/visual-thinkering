@@ -1,6 +1,6 @@
 # STATUS.md — 実装状況
 
-> 最終更新: 2026-04-18
+> 最終更新: 2026-04-19
 > 粒度: 機能単位（ユーザーが体験できる単位）
 > 詳細な仕様・テスト方針は各 `docs/specs/` ファイルを参照
 
@@ -55,3 +55,36 @@
 | 保存・読み込み完了時に markClean() が呼ばれること | ✅         | ✅     |
 | UnsavedDialog コンポーネント（3ボタン）           | ✅         | ✅     |
 | useCloseGuard（onCloseRequested 連携）            | ✅         | ✅     |
+
+---
+
+## TypeQL 出力パネル [`typeql-panel.md`](specs/typeql-panel.md)
+
+| 機能                                     | ステータス | テスト |
+| ---------------------------------------- | ---------- | ------ |
+| `define` ブロックの生成                  | ✅         | ✅     |
+| Attribute → Entity → Relation の出力順序 | ✅         | ✅     |
+| owns / plays / relates の生成            | ✅         | ✅     |
+| ロール名未設定エッジの警告               | ✅         | ✅     |
+| TypeQL キーワード同名ロールの警告        | ✅         | ✅     |
+| Attribute の value 型セレクター          | ✅         | ✅     |
+| TypeQL パネルの Copy ボタン              | ✅         | ✅     |
+| シンタックスハイライト                   | ✅         | ⚠️     |
+
+---
+
+## Abstract型 & Sub継承エッジ [`abstract-sub-inheritance.md`](specs/abstract-sub-inheritance.md)
+
+| 機能                                             | ステータス | テスト |
+| ------------------------------------------------ | ---------- | ------ |
+| `TypeDBEdgeType` 型の追加                        | ✅         | ✅     |
+| 同 typeDBType 同士の接続を sub として許可        | ✅         | ✅     |
+| `onConnect` で sub エッジを自動判定              | ✅         | ✅     |
+| SubEdge コンポーネント（中空三角矢印）           | ✅         | ⚠️     |
+| `isAbstract` フラグの Inspector チェックボックス | ✅         | ✅     |
+| `updateNodeAbstract` store アクション            | ✅         | ✅     |
+| Abstract バッジのノード表示                      | ✅         | ✅     |
+| TypeQL 生成: `sub` エッジ → `B sub A;`           | ✅         | ✅     |
+| TypeQL 生成: `abstract` フラグ → `, abstract`    | ✅         | ✅     |
+| sub のトポロジカルソート（親を先に出力）         | ✅         | ✅     |
+| 循環継承の警告                                   | ✅         | ✅     |

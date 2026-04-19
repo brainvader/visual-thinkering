@@ -1,6 +1,4 @@
 // src/lib/connectionRules.test.ts
-// isValidTypeDBConnection の failed test
-// ← src/lib/connectionRules.ts が未実装なので全件 fail する
 
 import { describe, it, expect } from 'vitest';
 import { isValidTypeDBConnection } from './connectionRules';
@@ -63,18 +61,31 @@ describe('isValidTypeDBConnection: 許可されるケース', () => {
             isValidTypeDBConnection(makeConnection('relation-1', 'attribute-1'), nodes)
         ).toBe(true);
     });
+
+    // sub エッジ: 同 typeDBType 同士の接続は継承として許可
+    it('Entity → Entity が許可されること（sub）', () => {
+        expect(
+            isValidTypeDBConnection(makeConnection('entity-1', 'entity-2'), nodes)
+        ).toBe(true);
+    });
+
+    it('Relation → Relation が許可されること（sub）', () => {
+        expect(
+            isValidTypeDBConnection(makeConnection('relation-1', 'relation-2'), nodes)
+        ).toBe(true);
+    });
+
+    it('Attribute → Attribute が許可されること（sub）', () => {
+        expect(
+            isValidTypeDBConnection(makeConnection('attribute-1', 'attribute-2'), nodes)
+        ).toBe(true);
+    });
 });
 
 // -----------------------------------------------
 // 拒否されるケース
 // -----------------------------------------------
 describe('isValidTypeDBConnection: 拒否されるケース', () => {
-    it('Entity → Entity が拒否されること', () => {
-        expect(
-            isValidTypeDBConnection(makeConnection('entity-1', 'entity-2'), nodes)
-        ).toBe(false);
-    });
-
     it('Attribute → Entity が拒否されること', () => {
         expect(
             isValidTypeDBConnection(makeConnection('attribute-1', 'entity-1'), nodes)
@@ -84,12 +95,6 @@ describe('isValidTypeDBConnection: 拒否されるケース', () => {
     it('Attribute → Relation が拒否されること', () => {
         expect(
             isValidTypeDBConnection(makeConnection('attribute-1', 'relation-1'), nodes)
-        ).toBe(false);
-    });
-
-    it('Attribute → Attribute が拒否されること', () => {
-        expect(
-            isValidTypeDBConnection(makeConnection('attribute-1', 'attribute-2'), nodes)
         ).toBe(false);
     });
 

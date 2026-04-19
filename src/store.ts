@@ -30,6 +30,8 @@ interface GraphState {
     updateNodeLabel: (nodeId: string, label: string) => void;
     // Attribute ノードの value 型を更新する
     updateNodeValueType: (nodeId: string, valueType: AttributeValueType) => void;
+    // ノードの abstract フラグを更新する
+    updateNodeAbstract: (nodeId: string, isAbstract: boolean) => void;
     setNarration: (text: string) => void;
     setViewport: (viewport: Viewport) => void;
     updateEdgeRole: (edgeId: string, role: string) => void;
@@ -40,7 +42,6 @@ interface GraphState {
     projectName: string;
     projectDescription: string;
     setProjectMeta: (name: string, description: string) => void;
-
 }
 
 export const useStore = create<GraphState>()(
@@ -68,7 +69,41 @@ export const useStore = create<GraphState>()(
             },
 
             onConnect: (connection) => {
-                set({ edges: addEdge({ ...connection, type: 'role', markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 } }, get().edges) });
+                // 接続元・接続先の typeDBType を取得して sub エッジかどうかを判定する
+                const nodes = get().nodes;
+                const sourceNode = nodes.find((n) => n.id === connection.source);
+                const targetNode = nodes.find((n) => n.id === connection.target);
+                const isSub =
+                    sourceNode !== undefined &&
+                    targetNode !== undefined &&
+                    sourceNode.data.typeDBType === targetNode.data.typeDBType;
+
+                if (isSub) {
+                    // sub エッジ: 矢印なし・edgeType='sub'
+                    set({
+                        edges: addEdge(
+                            {
+                                ...connection,
+                                type: 'sub',
+                                data: { role: '', edgeType: 'sub' } as TypeDBEdgeData,
+                            },
+                            get().edges
+                        ),
+                    });
+                } else {
+                    // role エッジ: ArrowClosed マーカー付き・edgeType='role'
+                    set({
+                        edges: addEdge(
+                            {
+                                ...connection,
+                                type: 'role',
+                                markerEnd: { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+                                data: { role: '', edgeType: 'role' } as TypeDBEdgeData,
+                            },
+                            get().edges
+                        ),
+                    });
+                }
                 get().markDirty();
             },
 
@@ -85,20 +120,43 @@ export const useStore = create<GraphState>()(
             addNode: (type, position) => {
                 const id = crypto.randomUUID();
                 const label = type.charAt(0).toUpperCase() + type.slice(1);
-                set({ nodes: [...get().nodes, { id, data: { label, typeDBType: type, isAbstract: false }, position, type }] });
+                set({
+                    nodes: [
+                        ...get().nodes,
+                        { id, data: { label, typeDBType: type, isAbstract: false }, position, type },
+                    ],
+                });
                 get().markDirty();
                 return id;
             },
 
             updateNodeLabel: (nodeId, label) => {
-                set({ nodes: get().nodes.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, label } } : n) });
+                set({
+                    nodes: get().nodes.map((n) =>
+                        n.id === nodeId ? { ...n, data: { ...n.data, label } } : n
+                    ),
+                });
                 get().markDirty();
             },
 
             // Attribute ノードの value 型を更新する
             // 即時反映（Enter 確定不要）: ドロップダウン選択 = 意図の確定
             updateNodeValueType: (nodeId, valueType) => {
-                set({ nodes: get().nodes.map((n) => n.id === nodeId ? { ...n, data: { ...n.data, valueType } } : n) });
+                set({
+                    nodes: get().nodes.map((n) =>
+                        n.id === nodeId ? { ...n, data: { ...n.data, valueType } } : n
+                    ),
+                });
+                get().markDirty();
+            },
+
+            // ノードの abstract フラグを更新する
+            updateNodeAbstract: (nodeId, isAbstract) => {
+                set({
+                    nodes: get().nodes.map((n) =>
+                        n.id === nodeId ? { ...n, data: { ...n.data, isAbstract } } : n
+                    ),
+                });
                 get().markDirty();
             },
 
@@ -110,7 +168,11 @@ export const useStore = create<GraphState>()(
             setViewport: (viewport) => set({ viewport }),
 
             updateEdgeRole: (edgeId, role) => {
-                set({ edges: get().edges.map((e) => e.id === edgeId ? { ...e, data: { ...e.data, role } } : e) });
+                set({
+                    edges: get().edges.map((e) =>
+                        e.id === edgeId ? { ...e, data: { ...e.data, role } } : e
+                    ),
+                });
                 get().markDirty();
             },
 

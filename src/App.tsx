@@ -54,6 +54,8 @@ export default function App({ onBack }: AppProps) {
 
   const [closeDialogOpen, setCloseDialogOpen] = React.useState(false);
 
+  const updateNodeAbstract = useStore((s) => s.updateNodeAbstract);
+
   // アプリ終了時の未保存確認
   useCloseGuard({
     onRequestClose: () => setCloseDialogOpen(true),
@@ -193,6 +195,7 @@ export default function App({ onBack }: AppProps) {
               updateEdgeRole={updateEdgeRole}
               nodes={nodes}
               edges={edges}
+              updateNodeAbstract={updateNodeAbstract}
             />
           </ResizablePanel>
 

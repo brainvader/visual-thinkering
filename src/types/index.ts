@@ -4,6 +4,9 @@ export type TypeDBMetaType = "entity" | "relation" | "attribute";
 // TypeDB がサポートする primitive value 型
 export type AttributeValueType = "string" | "long" | "double" | "boolean" | "datetime";
 
+// エッジの種別: role（owns/plays）または sub（継承）
+export type TypeDBEdgeType = "role" | "sub";
+
 export interface TypeDBNodeData {
     label: string;
     typeDBType: TypeDBMetaType;
@@ -16,6 +19,9 @@ export interface TypeDBNodeData {
 
 export interface TypeDBEdgeData {
     role: string;
+    // エッジ種別: 同 typeDBType 同士の接続は "sub"、それ以外は "role"
+    // 未設定時は "role" として扱う（後方互換）
+    edgeType?: TypeDBEdgeType;
     isKey?: boolean;
     [key: string]: unknown;
 }
