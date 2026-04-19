@@ -34,6 +34,8 @@ interface SidebarProps {
     updateNodeLabel: (nodeId: string, label: string) => void;
     // Attribute ノードの value 型更新
     updateNodeValueType: (nodeId: string, valueType: AttributeValueType) => void;
+    // ノードの abstract フラグ更新
+    updateNodeAbstract: (nodeId: string, isAbstract: boolean) => void;
     updateEdgeRole: (edgeId: string, role: string) => void;
     // TypeQL タブ用
     nodes: Node<TypeDBNodeData>[];
@@ -47,6 +49,7 @@ export const Sidebar = ({
     deleteEdge,
     updateNodeLabel,
     updateNodeValueType,
+    updateNodeAbstract,
     updateEdgeRole,
     nodes,
     edges,
@@ -106,6 +109,15 @@ export const Sidebar = ({
         [selectedNode, updateNodeValueType]
     );
 
+    // abstract フラグのトグル：チェックボックス変更で即時確定する
+    const handleAbstractChange = useCallback(
+        (e: React.ChangeEvent<HTMLInputElement>) => {
+            if (!selectedNode) return;
+            updateNodeAbstract(selectedNode.id, e.target.checked);
+        },
+        [selectedNode, updateNodeAbstract]
+    );
+
     // ロール名確定
     const handleRoleConfirm = useCallback(() => {
         if (!selectedEdge) return;
@@ -125,7 +137,6 @@ export const Sidebar = ({
     );
 
     // 接続先ノードの typeDBType を確認して owns エッジ（Attribute への接続）か判定する
-    // nodes が渡されているため、selectedEdge.target から引き直す
     const isOwnsEdge = selectedEdge
         ? nodes.find((n) => n.id === selectedEdge.target)?.data.typeDBType === 'attribute'
         : false;
@@ -146,6 +157,8 @@ export const Sidebar = ({
                             <p className="text-xs text-muted-foreground font-mono">
                                 ID: {selectedNode.id}
                             </p>
+
+                            {/* ラベル編集 */}
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="node-label" className="text-xs font-medium">
                                     Label
@@ -163,6 +176,21 @@ export const Sidebar = ({
                                 <p className="text-[10px] text-muted-foreground/70">
                                     Enter で確定 / Esc でキャンセル
                                 </p>
+                            </div>
+
+                            {/* Abstract フラグ: 全ノード共通 */}
+                            <div className="flex items-center gap-2">
+                                <input
+                                    type="checkbox"
+                                    id="node-abstract"
+                                    checked={currentNode?.data.isAbstract ?? false}
+                                    onChange={handleAbstractChange}
+                                    className="h-4 w-4 rounded border-border accent-primary cursor-pointer"
+                                    aria-label="abstract"
+                                />
+                                <Label htmlFor="node-abstract" className="text-xs font-medium cursor-pointer">
+                                    Abstract
+                                </Label>
                             </div>
 
                             {/* Attribute ノード選択時のみ value 型セレクトを表示 */}
@@ -184,11 +212,7 @@ export const Sidebar = ({
                                         </SelectTrigger>
                                         <SelectContent>
                                             {VALUE_TYPE_OPTIONS.map((opt) => (
-                                                <SelectItem
-                                                    key={opt.value}
-                                                    value={opt.value}
-                                                    className="text-sm"
-                                                >
+                                                <SelectItem key={opt.value} value={opt.value}>
                                                     {opt.label}
                                                 </SelectItem>
                                             ))}
@@ -197,12 +221,6 @@ export const Sidebar = ({
                                 </div>
                             )}
 
-                            <div className="flex flex-col gap-1.5">
-                                <span className="text-xs font-medium text-muted-foreground">Type</span>
-                                <span className="text-xs px-2 py-0.5 rounded-full bg-muted w-fit capitalize">
-                                    {currentNode?.data.typeDBType}
-                                </span>
-                            </div>
                             <Button
                                 variant="destructive"
                                 size="sm"
@@ -213,7 +231,7 @@ export const Sidebar = ({
                             </Button>
                         </div>
                     ) : selectedEdge ? (
-
+                        /* エッジインスペクター */
                         <div className="flex flex-col gap-4">
                             <p className="text-xs text-muted-foreground font-mono">
                                 Edge ID: {selectedEdge.id}
@@ -258,6 +276,6 @@ export const Sidebar = ({
                     <TypeQLPanel nodes={nodes} edges={edges} />
                 </TabsContent>
             </Tabs>
-        </aside >
+        </aside>
     );
 };
