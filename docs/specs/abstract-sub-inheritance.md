@@ -1,6 +1,6 @@
 # Spec: Abstract型 & Sub継承エッジ
 
-> ステータス: **Draft**
+> ステータス: **Implemented / バグ修正中**
 > ブランチ: `feat/abstract-sub-inheritance`
 > 関連ファイル:
 >
@@ -13,6 +13,7 @@
 > - `src/lib/connectionRules.ts`
 > - `src/lib/typeql.ts`
 > - `src/store.ts`
+> - `src/components/Sidebar.tsx`
 
 ---
 
@@ -41,6 +42,7 @@ employee sub person,
 - `sub` と `abstract` は独立した概念
 - サブタイプは親の `owns` / `plays` / `relates` をすべて継承する
 - `abstract` は必須ではない（具象型も `sub` できる）
+- Relation の子型は親の `relates` を自動継承するため、子から改めて `plays` エッジを引く必要はない
 
 ---
 
@@ -85,12 +87,25 @@ employee sub person,
 
 UML継承スタイルの中空三角矢印。既存の `RoleEdge`（実線＋ロール名）とは別の `edgeType`。
 
-| 属性   | 値                               |
-| ------ | -------------------------------- |
-| 線種   | 実線                             |
-| 矢印   | 中空三角（`markerEnd` カスタム） |
-| ラベル | なし                             |
-| 色     | `--color-muted-foreground`       |
+| 属性       | 通常時                     | 選択時              |
+| ---------- | -------------------------- | ------------------- |
+| 線種       | 破線                       | 破線                |
+| 矢印       | 中空三角                   | 中空三角            |
+| ストローク | `--color-muted-foreground` | `#1d4ed8`（青・濃） |
+| 太さ       | 1.5px                      | 2.5px               |
+| ラベル     | なし                       | なし                |
+
+---
+
+## Sidebar の Role フィールド表示ルール
+
+エッジ選択時の Role 入力フィールドは以下の条件で非表示にする：
+
+| 条件                                | Role フィールド |
+| ----------------------------------- | --------------- |
+| `edgeType === 'sub'`（継承エッジ）  | 非表示          |
+| 接続先が `attribute`（owns エッジ） | 非表示          |
+| それ以外（plays エッジ）            | 表示            |
 
 ---
 
@@ -185,6 +200,17 @@ sub エッジのテスト:
 - isAbstract: false のとき "abstract" バッジが非表示であること
 ```
 
+### `src/components/Sidebar.edge.test.tsx` への追加（Bug 1）
+
+```
+- sub エッジ選択時に Role 入力フィールドが表示されないこと
+- sub エッジ選択時に Delete ボタンは表示されること
+```
+
+### `src/components/edges/SubEdge` のビジュアルテスト（Bug 2）
+
+jsdom では SVG スタイルの検証が困難なため目視確認とする（⚠️）。
+
 ---
 
 ## 実装順序
@@ -197,4 +223,6 @@ sub エッジのテスト:
 6. `src/components/edges/index.ts` — `SubEdge` 登録
 7. `src/components/nodes/*.tsx` — Abstract バッジ追加
 8. `src/components/Sidebar.tsx` — Inspector に `isAbstract` チェックボックス追加
-9. `CLAUDE.md` / `docs/STATUS.md` / `docs/ARCHITECTURE.md` 更新
+9. `src/components/Sidebar.tsx` — Bug 1: `sub` エッジ選択時 Role フィールド非表示
+10. `src/components/edges/SubEdge.tsx` — Bug 2: `selected` prop でスタイル切り替え
+11. `CLAUDE.md` / `docs/STATUS.md` / `docs/ARCHITECTURE.md` 更新

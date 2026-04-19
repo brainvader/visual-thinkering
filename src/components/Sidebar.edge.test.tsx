@@ -10,7 +10,7 @@ const mockEdge: Edge<TypeDBEdgeData> = {
     id: 'e-1',
     source: 'node-1',
     target: 'node-2',
-    data: { role: 'employee' },
+    data: { role: 'employee', edgeType: 'role' },
 };
 
 // 全 render 呼び出しで共通の必須 props をまとめたヘルパー
@@ -21,12 +21,12 @@ const defaultProps = {
     deleteEdge: vi.fn(),
     updateNodeLabel: vi.fn(),
     updateNodeValueType: vi.fn(),
+    updateNodeAbstract: vi.fn(),
     updateEdgeRole: vi.fn(),
     nodes: [],
     edges: [],
 };
 
-// テストデータ追加
 const attributeNode: Node<TypeDBNodeData> = {
     id: 'node-attr',
     data: { label: 'name', typeDBType: 'attribute', isAbstract: false },
@@ -41,12 +41,27 @@ const entityNode: Node<TypeDBNodeData> = {
     type: 'entity',
 };
 
+const entityNode2: Node<TypeDBNodeData> = {
+    id: 'node-entity-2',
+    data: { label: 'Worker', typeDBType: 'entity', isAbstract: false },
+    position: { x: 0, y: 0 },
+    type: 'entity',
+};
+
 // Attribute へのエッジ（owns）
 const ownsEdge: Edge<TypeDBEdgeData> = {
     id: 'e-owns',
     source: 'node-entity',
     target: 'node-attr',
-    data: { role: '' },
+    data: { role: '', edgeType: 'role' },
+};
+
+// 継承エッジ（sub）
+const subEdge: Edge<TypeDBEdgeData> = {
+    id: 'e-sub',
+    source: 'node-entity-2',
+    target: 'node-entity',
+    data: { role: '', edgeType: 'sub' },
 };
 
 beforeEach(() => {
@@ -65,49 +80,44 @@ describe('Sidebar: エッジインスペクター', () => {
         expect(input).toHaveValue('employee');
     });
 
-    it('Enter でロール名が確定されること', async () => {
-        const mockUpdateRole = vi.fn();
-        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} updateEdgeRole={mockUpdateRole} />);
+    it('Enter キーで確定すると updateEdgeRole が呼ばれること', async () => {
+        const mockUpdate = vi.fn();
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} updateEdgeRole={mockUpdate} />);
         const input = screen.getByRole('textbox', { name: /role/i });
+
         await userEvent.clear(input);
         await userEvent.type(input, 'worker');
         await userEvent.keyboard('{Enter}');
-        expect(mockUpdateRole).toHaveBeenCalledWith('e-1', 'worker');
+
+        expect(mockUpdate).toHaveBeenCalledWith('e-1', 'worker');
     });
 
-    it('空文字列で Enter を押しても updateEdgeRole が呼ばれないこと', async () => {
-        const mockUpdateRole = vi.fn();
-        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} updateEdgeRole={mockUpdateRole} />);
+    it('Escape キーでキャンセルされること', async () => {
+        const mockUpdate = vi.fn();
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} updateEdgeRole={mockUpdate} />);
         const input = screen.getByRole('textbox', { name: /role/i });
-        await userEvent.clear(input);
-        await userEvent.keyboard('{Enter}');
-        expect(mockUpdateRole).not.toHaveBeenCalled();
-    });
 
-    it('Escape でキャンセルされること', async () => {
-        const mockUpdateRole = vi.fn();
-        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} updateEdgeRole={mockUpdateRole} />);
-        const input = screen.getByRole('textbox', { name: /role/i });
         await userEvent.clear(input);
-        await userEvent.type(input, 'changed');
+        await userEvent.type(input, 'newrole');
         await userEvent.keyboard('{Escape}');
-        expect(mockUpdateRole).not.toHaveBeenCalled();
+
+        expect(mockUpdate).not.toHaveBeenCalled();
         expect(input).toHaveValue('employee');
     });
 
     it('Delete ボタンで deleteEdge が呼ばれること', async () => {
-        const mockDeleteEdge = vi.fn();
-        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} deleteEdge={mockDeleteEdge} />);
+        const mockDelete = vi.fn();
+        render(<Sidebar {...defaultProps} selectedEdge={mockEdge} deleteEdge={mockDelete} />);
         await userEvent.click(screen.getByRole('button', { name: /delete/i }));
-        expect(mockDeleteEdge).toHaveBeenCalledWith('e-1');
+        expect(mockDelete).toHaveBeenCalledWith('e-1');
     });
 
-    it('selectedEdge が切り替わると入力フィールドがリセットされること', () => {
+    it('selectedEdge が切り替わるとロール名入力フィールドがリセットされること', () => {
         const anotherEdge: Edge<TypeDBEdgeData> = {
             id: 'e-3',
             source: 'node-2',
             target: 'node-3',
-            data: { role: 'employer' },
+            data: { role: 'employer', edgeType: 'role' },
         };
         const { rerender } = render(
             <Sidebar {...defaultProps} selectedEdge={mockEdge} />
@@ -124,7 +134,6 @@ describe('Sidebar: エッジインスペクター', () => {
         expect(screen.getByText(/select a node or edge/i)).toBeInTheDocument();
     });
 });
-
 
 describe('Sidebar: owns エッジ（Attribute への接続）', () => {
     it('接続先が Attribute のとき Role 入力フィールドが表示されないこと', () => {
@@ -153,10 +162,34 @@ describe('Sidebar: owns エッジ（Attribute への接続）', () => {
         render(
             <Sidebar
                 {...defaultProps}
-                selectedEdge={mockEdge} // target: node-2 は nodes に含まれないため entity 扱い
+                selectedEdge={mockEdge}
                 nodes={[]}
             />
         );
         expect(screen.getByRole('textbox', { name: /role/i })).toBeInTheDocument();
+    });
+});
+
+describe('Sidebar: sub エッジ（継承）', () => {
+    it('sub エッジ選択時に Role 入力フィールドが表示されないこと', () => {
+        render(
+            <Sidebar
+                {...defaultProps}
+                selectedEdge={subEdge}
+                nodes={[entityNode, entityNode2]}
+            />
+        );
+        expect(screen.queryByRole('textbox', { name: /role/i })).toBeNull();
+    });
+
+    it('sub エッジ選択時に Delete ボタンは表示されること', () => {
+        render(
+            <Sidebar
+                {...defaultProps}
+                selectedEdge={subEdge}
+                nodes={[entityNode, entityNode2]}
+            />
+        );
+        expect(screen.getByRole('button', { name: /delete/i })).toBeInTheDocument();
     });
 });

@@ -17,7 +17,6 @@ import {
 } from '@/components/ui/select';
 import { TypeQLPanel } from './TypeQLPanel';
 
-// TypeDB がサポートする value 型の選択肢
 const VALUE_TYPE_OPTIONS: { value: AttributeValueType; label: string }[] = [
     { value: 'string', label: 'string' },
     { value: 'long', label: 'long' },
@@ -32,12 +31,9 @@ interface SidebarProps {
     deleteNode: (id: string) => void;
     deleteEdge: (id: string) => void;
     updateNodeLabel: (nodeId: string, label: string) => void;
-    // Attribute ノードの value 型更新
     updateNodeValueType: (nodeId: string, valueType: AttributeValueType) => void;
-    // ノードの abstract フラグ更新
     updateNodeAbstract: (nodeId: string, isAbstract: boolean) => void;
     updateEdgeRole: (edgeId: string, role: string) => void;
-    // TypeQL タブ用
     nodes: Node<TypeDBNodeData>[];
     edges: Edge<TypeDBEdgeData>[];
 }
@@ -54,35 +50,27 @@ export const Sidebar = ({
     nodes,
     edges,
 }: SidebarProps) => {
-    // selectedNode は App.tsx のローカル state のスナップショットなので stale になりうる。
-    // store 経由で更新された最新データは nodes 配列から引き直す。
     const currentNode = selectedNode
         ? (nodes.find((n) => n.id === selectedNode.id) ?? selectedNode)
         : null;
 
-    // ノードラベル編集用ローカル state
     const [editingLabel, setEditingLabel] = useState('');
     const originalLabelRef = useRef('');
-
-    // エッジロール名編集用ローカル state
     const [editingRole, setEditingRole] = useState('');
     const originalRoleRef = useRef('');
 
-    // selectedNode が切り替わったらラベル入力をリセット
     useEffect(() => {
         const label = selectedNode?.data.label ?? '';
         setEditingLabel(label);
         originalLabelRef.current = label;
     }, [selectedNode?.id]);
 
-    // selectedEdge が切り替わったらロール名入力をリセット
     useEffect(() => {
         const role = selectedEdge?.data?.role ?? '';
         setEditingRole(role);
         originalRoleRef.current = role;
     }, [selectedEdge?.id]);
 
-    // ラベル確定
     const handleLabelConfirm = useCallback(() => {
         if (!selectedNode) return;
         const trimmed = editingLabel.trim();
@@ -100,7 +88,6 @@ export const Sidebar = ({
         [handleLabelConfirm]
     );
 
-    // value 型変更：ドロップダウン選択は即時確定なので onValueChange で直接 dispatch する
     const handleValueTypeChange = useCallback(
         (value: string) => {
             if (!selectedNode) return;
@@ -109,7 +96,6 @@ export const Sidebar = ({
         [selectedNode, updateNodeValueType]
     );
 
-    // abstract フラグのトグル：チェックボックス変更で即時確定する
     const handleAbstractChange = useCallback(
         (e: React.ChangeEvent<HTMLInputElement>) => {
             if (!selectedNode) return;
@@ -118,7 +104,6 @@ export const Sidebar = ({
         [selectedNode, updateNodeAbstract]
     );
 
-    // ロール名確定
     const handleRoleConfirm = useCallback(() => {
         if (!selectedEdge) return;
         const trimmed = editingRole.trim();
@@ -136,10 +121,13 @@ export const Sidebar = ({
         [handleRoleConfirm]
     );
 
-    // 接続先ノードの typeDBType を確認して owns エッジ（Attribute への接続）か判定する
+    // owns エッジ（Attribute への接続）か判定する
     const isOwnsEdge = selectedEdge
         ? nodes.find((n) => n.id === selectedEdge.target)?.data.typeDBType === 'attribute'
         : false;
+
+    // sub エッジ（継承）か判定する。role の概念がないため Role フィールドを非表示にする
+    const isSubEdge = selectedEdge?.data?.edgeType === 'sub';
 
     return (
         <aside className="h-full border-l bg-card flex flex-col">
@@ -149,16 +137,13 @@ export const Sidebar = ({
                     <TabsTrigger value="typeql" className="text-xs h-7">TypeQL</TabsTrigger>
                 </TabsList>
 
-                {/* Inspector タブ */}
                 <TabsContent value="inspector" className="flex-1 overflow-y-auto p-4 mt-0">
                     {selectedNode ? (
-                        /* ノードインスペクター */
                         <div className="flex flex-col gap-4">
                             <p className="text-xs text-muted-foreground font-mono">
                                 ID: {selectedNode.id}
                             </p>
 
-                            {/* ラベル編集 */}
                             <div className="flex flex-col gap-1.5">
                                 <Label htmlFor="node-label" className="text-xs font-medium">
                                     Label
@@ -178,7 +163,6 @@ export const Sidebar = ({
                                 </p>
                             </div>
 
-                            {/* Abstract フラグ: 全ノード共通 */}
                             <div className="flex items-center gap-2">
                                 <input
                                     type="checkbox"
@@ -193,7 +177,6 @@ export const Sidebar = ({
                                 </Label>
                             </div>
 
-                            {/* Attribute ノード選択時のみ value 型セレクトを表示 */}
                             {currentNode?.data.typeDBType === 'attribute' && (
                                 <div className="flex flex-col gap-1.5">
                                     <Label htmlFor="value-type" className="text-xs font-medium">
@@ -231,13 +214,12 @@ export const Sidebar = ({
                             </Button>
                         </div>
                     ) : selectedEdge ? (
-                        /* エッジインスペクター */
                         <div className="flex flex-col gap-4">
                             <p className="text-xs text-muted-foreground font-mono">
                                 Edge ID: {selectedEdge.id}
                             </p>
-                            {/* owns エッジ（Attribute への接続）の場合は Role 入力欄を非表示にする */}
-                            {!isOwnsEdge && (
+                            {/* owns エッジまたは sub エッジの場合は Role 入力欄を非表示にする */}
+                            {!isOwnsEdge && !isSubEdge && (
                                 <div className="flex flex-col gap-1.5">
                                     <Label htmlFor="edge-role" className="text-xs font-medium">
                                         Role
@@ -271,7 +253,6 @@ export const Sidebar = ({
                     )}
                 </TabsContent>
 
-                {/* TypeQL タブ */}
                 <TabsContent value="typeql" className="flex-1 overflow-hidden mt-0">
                     <TypeQLPanel nodes={nodes} edges={edges} />
                 </TabsContent>
