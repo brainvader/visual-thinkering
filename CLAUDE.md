@@ -174,8 +174,12 @@ interface TypeDBNodeData {
   [key: string]: unknown;
 }
 
+// エッジの種別: role（owns/plays）または sub（継承）
+type TypeDBEdgeType = "role" | "sub";
+
 interface TypeDBEdgeData {
   role: string;
+  edgeType?: TypeDBEdgeType; // 未設定時は 'role' として扱う
   isKey?: boolean;
   [key: string]: unknown;
 }
@@ -219,16 +223,22 @@ localStorage 復元後は `useNodesInitialized()` でノード測定完了を検
 
 **コンテキストメニュー:** Radix UI ContextMenu を廃止。カスタムポップアップ（`onNodeContextMenu` / `onPaneContextMenu` / `onEdgeContextMenu`）で実装。
 
-### TypeDB セマンティクス
+## TypeDB セマンティクス（更新）
 
-| エッジ方向           | 意味                  |
-| -------------------- | --------------------- |
-| Entity → Relation    | plays（ロール名必須） |
-| Entity → Attribute   | owns                  |
-| Relation → Attribute | owns                  |
-| Relation → Relation  | nested relation       |
-| Attribute → \*       | ❌ 禁止               |
-| Entity → Entity      | ❌ 禁止               |
+既存テーブルを以下に置き換え:
+
+| エッジ方向                 | `edgeType` | 意味                         |
+| -------------------------- | ---------- | ---------------------------- |
+| Entity → Relation          | `role`     | plays（ロール名必須）        |
+| Entity → Attribute         | `role`     | owns                         |
+| Relation → Attribute       | `role`     | owns                         |
+| Relation → Relation        | `role`     | nested relation / または sub |
+| Entity → Entity            | `sub`      | 継承（B sub A）              |
+| Relation → Relation (同)   | `sub`      | 継承（B sub A）              |
+| Attribute → Attribute      | `sub`      | 継承（B sub A）              |
+| Attribute → \*（上記以外） | —          | ❌ 禁止                      |
+
+> `sub` エッジは **接続時に同 `typeDBType` を自動判定** して付与される。
 
 ## Conventions
 
@@ -259,6 +269,7 @@ localStorage 復元後は `useNodesInitialized()` でノード測定完了を検
 - `vi.mock` ファクトリ内でモジュールスコープの変数を参照しない（ホイスティングにより未初期化エラー）
 - `tauri.conf.json` に `closeRequestedEvent` を追加しない（Tauri 2 では不要・エラーになる）
 - `getCurrentWindow().close()` には `core:window:allow-destroy` パーミッションが必要
+- `connectionRules.ts` で `Entity→Entity` を無条件に禁止しない（`sub` エッジとして許可されるため）
 
 ## Specs
 

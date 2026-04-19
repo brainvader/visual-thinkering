@@ -151,17 +151,19 @@ nextCopyName("HR管理", ["HR管理 001", "HR管理 002"]) → "HR管理 003"
 
 ---
 
-## TypeQL 生成の現状と課題
+## TypeQL 生成の現状と課題（更新）
 
 `generateTypeQL(nodes, edges)` は現在シンプルな文字列生成のみ。
 
-**現状の制約:**
+**feat/abstract-sub-inheritance で追加予定:**
 
-- `isAbstract` フラグを使った抽象型定義が未実装
-- 循環参照（Relation が別の Relation に relates する）の検出がない
-- TypeQL の構文バリデーションなし
+- `isAbstract` フラグ → `, abstract` 修飾子として出力
+- `sub` エッジ → `B sub A;` として出力
+- トポロジカルソートで継承の親を先に出力
+- 循環継承の検出（警告として返す）
+  **引き続き未実装:**
 
-これらは `docs/specs/` にスペックを書いて順次実装する。
+- TypeQL の構文バリデーション（将来の課題）
 
 ---
 
