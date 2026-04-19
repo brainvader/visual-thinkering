@@ -14,10 +14,13 @@ vi.mock('@xyflow/react', async (importOriginal) => {
     };
 });
 
-// React Flow の NodeProps 最小モック
-const makeProps = (label: string, selected = false): NodeProps<FlowNode<TypeDBNodeData>> => ({
+const makeProps = (
+    label: string,
+    selected = false,
+    isAbstract = false
+): NodeProps<FlowNode<TypeDBNodeData>> => ({
     id: 'test-id',
-    data: { label, typeDBType: 'entity', isAbstract: false },
+    data: { label, typeDBType: 'entity', isAbstract },
     selected,
     type: 'entity',
     zIndex: 0,
@@ -44,5 +47,15 @@ describe('EntityNode', () => {
     it('selected=false のときハイライト属性が付かないこと', () => {
         const { container } = render(<EntityNode {...makeProps('Person', false)} />);
         expect(container.firstChild).not.toHaveAttribute('data-selected', 'true');
+    });
+
+    it('isAbstract=true のとき "abstract" バッジが表示されること', () => {
+        render(<EntityNode {...makeProps('Person', false, true)} />);
+        expect(screen.getByText('abstract')).toBeInTheDocument();
+    });
+
+    it('isAbstract=false のとき "abstract" バッジが表示されないこと', () => {
+        render(<EntityNode {...makeProps('Person', false, false)} />);
+        expect(screen.queryByText('abstract')).toBeNull();
     });
 });

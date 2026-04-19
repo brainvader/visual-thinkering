@@ -31,8 +31,26 @@ export function RelationNode({ data, selected }: NodeProps<FlowNode<TypeDBNodeDa
             style={{ width, height }}
             className="relative cursor-default select-none"
         >
-            {/* ひし形の各頂点に source/target 両方を配置
-                style でひし形の頂点位置に合わせて微調整する */}
+            {/* abstract フラグが true のとき右上にバッジを表示する */}
+            {data.isAbstract && (
+                <span
+                    className="
+                        absolute -top-2 -right-2
+                        px-1 py-0
+                        text-[9px] font-mono font-semibold
+                        bg-green-100 border border-green-500
+                        text-green-700
+                        rounded
+                        leading-tight
+                        select-none
+                        z-10
+                    "
+                >
+                    abstract
+                </span>
+            )}
+
+            {/* ひし形の各頂点に source/target 両方を配置 */}
             <Handle type="target" position={Position.Top} id="top-target" style={{ top: 0 }} />
             <Handle type="source" position={Position.Top} id="top-source" style={{ top: 0 }} />
             <Handle type="target" position={Position.Bottom} id="bottom-target" style={{ bottom: 0 }} />
@@ -42,11 +60,7 @@ export function RelationNode({ data, selected }: NodeProps<FlowNode<TypeDBNodeDa
             <Handle type="target" position={Position.Right} id="right-target" style={{ right: 0 }} />
             <Handle type="source" position={Position.Right} id="right-source" style={{ right: 0 }} />
 
-            <svg
-                width={width}
-                height={height}
-                className="overflow-visible"
-            >
+            <svg width={width} height={height} className="overflow-visible">
                 <polygon
                     points={points}
                     fill="#f0fdf4"
