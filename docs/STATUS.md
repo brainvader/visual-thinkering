@@ -88,5 +88,17 @@
 | TypeQL 生成: `abstract` フラグ → `, abstract`    | ✅         | ✅     |
 | sub のトポロジカルソート（親を先に出力）         | ✅         | ✅     |
 | 循環継承の警告                                   | ✅         | ✅     |
-| sub エッジ選択時 Role フィールド非表示           | ❌         | ❌     |
-| SubEdge 選択時ビジュアル強調                     | ❌         | ⚠️     |
+| sub エッジ選択時 Role フィールド非表示           | ✅         | ✅     |
+| SubEdge 選択時ビジュアル強調                     | ✅         | ⚠️     |
+
+---
+
+## 冗長な plays エッジの接続禁止 [`redundant-plays-guard.md`](specs/redundant-plays-guard.md)
+
+| 機能                                            | ステータス | テスト |
+| ----------------------------------------------- | ---------- | ------ |
+| `isValidTypeDBConnection` の `edges` 引数追加   | ✅         | ✅     |
+| 祖先集合の計算（`getAncestors` ユーティリティ） | ✅         | ✅     |
+| 既存 plays エッジとの照合による冗長接続の拒否   | ✅         | ✅     |
+| `GraphCanvas.tsx` の呼び出し側に `edges` を渡す | ✅         | -      |
+| 既存テストの `edges: []` 後方互換対応           | ✅         | ✅     |

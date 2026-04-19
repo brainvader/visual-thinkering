@@ -222,7 +222,7 @@ function GraphCanvasInner({
                 edgeTypes={edgeTypes}
                 connectionMode={ConnectionMode.Loose}
                 isValidConnection={(connection) =>
-                    isValidTypeDBConnection(connection, nodes)
+                    isValidTypeDBConnection(connection, nodes, edges)
                 }
                 defaultViewport={viewport}
                 onMoveEnd={(_event, vp) => setViewport(vp)}
