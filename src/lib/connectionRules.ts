@@ -8,15 +8,16 @@ import { TypeDBNodeData } from '@/types';
  * 引数は Connection または Edge<unknown> の union 型になる。
  *
  * 許可される接続:
- *   Entity    → Relation  （plays: Entity が Relation のロールを担う）
- *   Entity    → Attribute （owns:  Entity が Attribute を所有する）
- *   Relation  → Relation  （nested relation: TypeDB で合法）
- *   Relation  → Attribute （owns:  Relation が Attribute を所有する）
+ *   Entity    → Relation   （plays: Entity が Relation のロールを担う）
+ *   Entity    → Attribute  （owns:  Entity が Attribute を所有する）
+ *   Relation  → Relation   （nested relation / または sub 継承）
+ *   Relation  → Attribute  （owns:  Relation が Attribute を所有する）
+ *   Entity    → Entity     （sub:   継承。onConnect で edgeType='sub' を付与）
+ *   Attribute → Attribute  （sub:   継承。onConnect で edgeType='sub' を付与）
  *
  * 禁止される接続:
- *   Entity    → Entity    （直接接続は意味を持たない）
- *   Attribute → *         （Attribute は接続元になれない）
- *   * → * (self)          （自己ループは禁止）
+ *   Attribute → Entity/Relation  （Attribute は sub 以外で接続元になれない）
+ *   * → * (self)                 （自己ループは禁止）
  */
 export function isValidTypeDBConnection(
     connection: Connection | FlowEdge,
@@ -34,11 +35,12 @@ export function isValidTypeDBConnection(
     const sourceType = sourceNode.data.typeDBType;
     const targetType = targetNode.data.typeDBType;
 
-    // Attribute は接続元になれない（owns の方向は所有者 → Attribute）
-    if (sourceType === 'attribute') return false;
+    // 同 typeDBType 同士は sub（継承）エッジとして許可
+    if (sourceType === targetType) return true;
 
-    // Entity → Entity は直接接続不可
-    if (sourceType === 'entity' && targetType === 'entity') return false;
+    // Attribute は sub 以外で接続元になれない
+    // （同 typeDBType = Attribute→Attribute は上の条件で許可済み）
+    if (sourceType === 'attribute') return false;
 
     return true;
 }
