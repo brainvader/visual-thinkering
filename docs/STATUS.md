@@ -77,14 +77,14 @@
 
 | 機能                                             | ステータス | テスト |
 | ------------------------------------------------ | ---------- | ------ |
-| `TypeDBEdgeType` 型の追加                        | ❌         | ❌     |
-| 同 typeDBType 同士の接続を sub として許可        | ❌         | ❌     |
-| `onConnect` で sub エッジを自動判定              | ❌         | ❌     |
-| SubEdge コンポーネント（中空三角矢印）           | ❌         | ❌     |
-| `isAbstract` フラグの Inspector チェックボックス | ❌         | ❌     |
-| `updateNodeAbstract` store アクション            | ❌         | ❌     |
-| Abstract バッジのノード表示                      | ❌         | ❌     |
-| TypeQL 生成: `sub` エッジ → `B sub A;`           | ❌         | ❌     |
-| TypeQL 生成: `abstract` フラグ → `, abstract`    | ❌         | ❌     |
-| sub のトポロジカルソート（親を先に出力）         | ❌         | ❌     |
-| 循環継承の警告                                   | ❌         | ❌     |
+| `TypeDBEdgeType` 型の追加                        | ✅         | ✅     |
+| 同 typeDBType 同士の接続を sub として許可        | ✅         | ✅     |
+| `onConnect` で sub エッジを自動判定              | ✅         | ✅     |
+| SubEdge コンポーネント（中空三角矢印）           | ✅         | ⚠️     |
+| `isAbstract` フラグの Inspector チェックボックス | ✅         | ✅     |
+| `updateNodeAbstract` store アクション            | ✅         | ✅     |
+| Abstract バッジのノード表示                      | ✅         | ✅     |
+| TypeQL 生成: `sub` エッジ → `B sub A;`           | ✅         | ✅     |
+| TypeQL 生成: `abstract` フラグ → `, abstract`    | ✅         | ✅     |
+| sub のトポロジカルソート（親を先に出力）         | ✅         | ✅     |
+| 循環継承の警告                                   | ✅         | ✅     |
