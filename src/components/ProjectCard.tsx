@@ -22,11 +22,17 @@ export function ProjectCard({
     const formattedDate = new Date(lastOpenedAt).toLocaleDateString('ja-JP');
 
     return (
-        // カード全体をボタンにしてクリックで遷移できるようにする
-        <button
+        // <button> の中に <button> を入れると HTML 違反になるため
+        // div + role="button" で代替する
+        <div
+            role="button"
+            tabIndex={0}
             aria-label={name}
             onClick={onClick}
-            className="relative w-full text-left rounded-lg border bg-card p-4 hover:bg-accent transition-colors"
+            onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') onClick();
+            }}
+            className="relative w-full text-left rounded-lg border bg-card p-4 hover:bg-accent transition-colors cursor-pointer"
         >
             <div className="pr-8">
                 <p className="font-medium text-sm truncate">{name}</p>
@@ -51,6 +57,6 @@ export function ProjectCard({
             >
                 <Trash2 size={12} />
             </Button>
-        </button>
+        </div>
     );
 }
