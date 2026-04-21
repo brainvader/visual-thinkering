@@ -171,3 +171,47 @@ describe('store: narration', () => {
         expect(useStore.getState().narration).toBe('');
     });
 });
+
+describe('store: isDirty', () => {
+    beforeEach(resetStore);
+
+    it('初期値は false であること', () => {
+        expect(useStore.getState().isDirty).toBe(false);
+    });
+
+    it('markDirty() で true になること', () => {
+        useStore.getState().markDirty();
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+
+    it('markClean() で false に戻ること', () => {
+        useStore.getState().markDirty();
+        useStore.getState().markClean();
+        expect(useStore.getState().isDirty).toBe(false);
+    });
+
+    it('onNodesChange で座標変更があっても isDirty は変わらないこと', () => {
+        useStore.getState().markClean();
+        useStore.getState().onNodesChange([
+            { type: 'position', id: 'node-1', position: { x: 150, y: 100 } }
+        ]);
+        expect(useStore.getState().isDirty).toBe(false);
+    });
+
+    it('onConnect でエッジ接続時に isDirty が true になること', () => {
+        useStore.getState().markClean();
+        useStore.getState().onConnect({
+            source: 'node-1',
+            target: 'node-2',
+            sourceHandle: null,
+            targetHandle: null,
+        });
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+
+    it('deleteEdge 後に isDirty が true になること', () => {
+        useStore.getState().markClean();
+        useStore.getState().deleteEdge('e1-2');
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+});

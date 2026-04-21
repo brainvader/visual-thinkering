@@ -1,0 +1,521 @@
+# Spec: isDirty フラグの最適化
+
+> ステータス: **Draft**
+> 対象ブランチ: `feat/dirty-flag-optimization`
+> 関連ファイル: `src/store.ts`, `src/components/GraphCanvas.tsx`
+
+---
+
+## 目的
+
+`isDirty`（未保存フラグ）の管理を「意味のある変更」に限定し、
+React Flow の頻繁な座標更新による無駄な状態遷移を排除する。
+
+結果として：
+
+- ユーザー体験の向上（ドラッグだけで「保存が必要」と判定されない）
+- 将来のオートセーブ機能の実装が容易
+- 状態管理の意図が明確化
+
+---
+
+## 核心的な問題
+
+### 現状
+
+```typescript
+onNodesChange: (changes) => {
+  set({ nodes: applyNodeChanges(changes, get().nodes) });
+  get().markDirty(); // ← 常に呼ばれる
+};
+```
+
+**起きていること：**
+
+```
+ユーザーがノードをドラッグ
+    ↓
+フレーム60回/秒 × ドラッグ時間（例：1秒）
+= 60回の onNodesChange イベント
+    ↓
+60回の markDirty() 呼び出し
+    ↓
+AppHeader に「保存ボタン活性化」表示（最初の1回目で十分）
+    ↓
+ドラッグを放す
+    ↓
+「ノードの最終位置」だけが重要
+```
+
+**問題：**
+
+- 座標移動中の59回は「ノード位置の中間値」であり、保存する価値がない
+- 「保存が必要な変更」と「表示用の中間状態」が区別されていない
+
+---
+
+## onNodesChange が markDirty すべき条件
+
+### React Flow の `onNodesChange` が含むもの
+
+```typescript
+type NodeChange =
+  | { type: 'select'; id: string; selected: boolean }
+  | { type: 'position'; id: string; position?: XYPosition; dragging?: boolean }
+  | { type: 'remove'; id: string }
+  | { type: 'add'; item: Node }
+  | ...その他
+```
+
+### 「意味のある変更」と「一時的な変更」
+
+| Change 種別                | 内容              | 意味                               | markDirty すべきか |
+| -------------------------- | ----------------- | ---------------------------------- | ------------------ |
+| `add`                      | ノード追加        | **スキーマに新しい要素が加わった** | ✅ **Yes**         |
+| `remove`                   | ノード削除        | **スキーマから要素が除去された**   | ✅ **Yes**         |
+| `select`                   | 選択フラグ        | UIの一時的な選択状態               | ❌ **No**          |
+| `position`（ドラッグ中）   | `dragging: true`  | 画面表示用の中間座標               | ❌ **No**          |
+| `position`（ドラッグ終了） | `dragging: false` | **最終座標が確定した**             | ✅ **Yes**         |
+| `replace`                  | ノード置換        | ノード全体を置き換え（稀）         | ✅ **Yes**         |
+| `dimensions`               | サイズ変更        | ノードの表示サイズ（UI）           | ❌ **No**          |
+
+---
+
+## 実装状況
+
+### ✅ 既実装済み
+
+| 項目                                      | 状態 | 箇所           |
+| ----------------------------------------- | ---- | -------------- |
+| `onEdgesChange` で `markDirty()` なし     | ✅   | `src/store.ts` |
+| `onConnect` で `markDirty()` あり         | ✅   | `src/store.ts` |
+| その他の意図的な変更で `markDirty()` あり | ✅   | `src/store.ts` |
+
+### 🚧 実装が必要
+
+| 項目                                      | 内容                                   | 箇所                             |
+| ----------------------------------------- | -------------------------------------- | -------------------------------- |
+| `onNodesChange` から `markDirty()` を削除 | 現在：座標変更で無差別に `markDirty()` | `src/store.ts`                   |
+| `onNodeDragStop` で `markDirty()` 追加    | ドラッグ終了時のみ `markDirty()`       | `src/components/GraphCanvas.tsx` |
+
+---
+
+## 推奨される設計
+
+### 1. onNodesChange での markDirty 削除（必須）
+
+**現在：**
+
+```typescript
+onNodesChange: (changes) => {
+    set({ nodes: applyNodeChanges(changes, get().nodes) });
+    get().markDirty();  // ← これを削除する
+},
+```
+
+**修正後：**
+
+```typescript
+onNodesChange: (changes) => {
+    set({ nodes: applyNodeChanges(changes, get().nodes) });
+    // markDirty は呼ばない
+},
+```
+
+**理由：**
+
+- `onNodesChange` には「選択」や「ドラッグ中の座標」などUIの一時的な変更も含まれる
+- これらはファイル保存時に「結果的に保存されるが、保存する価値はない」
+- ドラッグ中に何度も `markDirty` が立つため、フラグがバタつく
+
+### 2. onNodeDragStop での markDirty 追加（必須）
+
+**新規実装：**
+
+```typescript
+// src/components/GraphCanvas.tsx
+
+<ReactFlow
+    onNodeDragStop={(event, node, nodes) => {
+        // ドラッグ終了時に「位置が確定した」ことを記録
+        useStore.getState().markDirty();
+    }}
+    ...
+/>
+```
+
+**理由：**
+
+- ドラッグが終わった瞬間だけを「座標が確定した」とみなす
+- この時点で1回だけ `markDirty` が呼ばれる（ドラッグ時間に関係なく）
+- ユーザーが実際に「ノード位置を変更した」という明確な意図がある
+
+### 3. その他の意図的な変更は個別に markDirty
+
+```typescript
+updateNodeLabel: (nodeId, label) => {
+    set({ nodes: ... });
+    get().markDirty();  // ← 保持（明示的な変更）
+},
+
+deleteNode: (nodeId) => {
+    set({ nodes: ..., edges: ... });
+    get().markDirty();  // ← 保持（スキーマ変更）
+},
+
+setNarration: (text) => {
+    set({ narration: text });
+    get().markDirty();  // ← 保持（コンテンツ変更）
+},
+```
+
+---
+
+## なぜ onNodesChange での markDirty が要らないのか（詳細）
+
+### ポイント1：「保存される情報」と「保存する価値」は別
+
+```
+localStorage に自動保存される情報：
+  nodes.position（ドラッグ中の座標も含む）
+
+ユーザーが「ファイルとして保存したい」情報：
+  最終的なノード位置（ドラッグ終了後）
+```
+
+現在の仕様（`partialize`）では：
+
+```typescript
+partialize: (state) => ({
+    nodes: state.nodes,    // ← ドラッグ中の中間座標も含まれる
+    edges: state.edges,
+    narration: state.narration,
+    viewport: state.viewport,
+}),
+```
+
+ドラッグ中の座標が localStorage に自動保存されるのは問題なし。
+ただし、それが **「ユーザーが明示的に保存する必要がある重要な変更」** かどうかは別の問題です。
+
+### ポイント2：ドラッグ終了時だけが「確定」
+
+```
+ドラッグ開始時
+  → position: { x: 100, y: 100 }, dragging: true
+  → position: { x: 105, y: 102 }, dragging: true
+  → position: { x: 110, y: 105 }, dragging: true
+  → ... 59回 ...
+ドラッグ終了時
+  → position: { x: 150, y: 150 }, dragging: false
+  → ここが「座標が確定した」瞬間
+```
+
+重要なのは **最後の1つ**だけ。前の59個は「画面を滑らかに動かすための中間値」に過ぎない。
+
+### ポイント3：ユーザー体験
+
+**現在の動作（onNodesChange で markDirty）：**
+
+```
+1. ノードをドラッグ開始
+2. 1フレーム目で isDirty = true （AppHeader の Save ボタンが活性化）
+3. ユーザーは「あ、変更があるんだ」と認識
+4. ノードを放す
+5. 「保存しますか？」と聞かれる（ドラッグだけで保存が必要と判定される）
+```
+
+**改善後（onNodeDragStop で markDirty）：**
+
+```
+1. ノードをドラッグ開始
+2. Save ボタンは活性化しない（一時的な変更と判定）
+3. ノードを放す
+4. onNodeDragStop が発火 → markDirty = true
+5. 「あ、変更が確定したんだ」と認識
+```
+
+ユーザーは「ドラッグだけで保存が必要と判定される」違和感がなくなります。
+
+---
+
+## onEdgesChange と onConnect への適用
+
+### onEdgesChange（変更不要）
+
+```typescript
+onEdgesChange: (changes: EdgeChange[...]) => {
+    set({ edges: applyEdgeChanges(changes, get().edges) });
+    // markDirty は呼ばない
+    // EdgeChange には「選択」や一時的な状態変更も含まれるため
+},
+```
+
+✅ **既実装済み**
+
+### onConnect（既実装済み）
+
+```typescript
+onConnect: (connection) => {
+    const isSub = /* sub エッジかどうかの判定 */;
+
+    set({
+        edges: addEdge(
+            {
+                ...connection,
+                type: isSub ? 'sub' : 'role',
+                data: { role: '', edgeType: isSub ? 'sub' : 'role' } as TypeDBEdgeData,
+                markerEnd: isSub ? undefined : { type: MarkerType.ArrowClosed, width: 20, height: 20 },
+            },
+            get().edges
+        ),
+    });
+    get().markDirty();  // ✅ 既に呼ばれている
+},
+```
+
+✅ **既実装済み**
+
+**理由：**
+
+- エッジを繋ぐ操作は明示的・意図的
+- 接続ペンダーが描画されてから接続される間に「一時的な状態」はない
+- ユーザーが「接続した」という操作そのものが「確定した変更」
+
+---
+
+## 複数ノード選択でのドラッグ処理
+
+### 現在の onNodeDragStop
+
+```typescript
+onNodeDragStop={(event, node, nodes) => {
+    useStore.getState().markDirty();
+}}
+```
+
+この実装は複数選択時にも正しく機能します。
+
+**複数ノード選択の流れ：**
+
+```
+1. ノードA を選択（selected=true）
+2. Ctrl + ノードB を選択（selected=true）
+3. ドラッグ開始（A, B, C が移動）
+4. ドラッグ終了
+   → onNodeDragStop が発火（複数回、またはグループ単位）
+   → markDirty() が呼ばれる
+```
+
+**将来の最適化案（本仕様スコープ外）：**
+
+React Flow v12+ では `onSelectionDragStop` イベントが提供されている可能性があります。
+その場合、グループ移動を「1つの統一された変更」として扱えます。
+
+```typescript
+// 将来の可能性
+onSelectionDragStop={(event) => {
+    // 複数ノード・エッジのグループ移動が1回で完了
+    useStore.getState().markDirty();
+}}
+```
+
+ただし、現在の `onNodeDragStop` でも十分機能するため、優先度は低。
+
+---
+
+## isDirty のリセットタイミング（重要）
+
+### 現在の実装（正しい）
+
+```typescript
+// useFileSave.ts の afterSave 関数
+function afterSave(...): void {
+    localStorage.setItem(SAVE_PATH_KEY, targetPath);
+    setFilePath(targetPath);
+
+    useStore.getState().markClean();  // ← ここで isDirty = false
+
+    useRecentProjectsStore.getState().addRecent({...});
+    toast.success('保存しました', {...});
+}
+```
+
+### 将来のシナリオで markClean() が必要な場合
+
+| シナリオ             | タイミング                      | 処理                    |
+| -------------------- | ------------------------------- | ----------------------- |
+| 現在の実装           | ファイル保存成功時              | `markClean()`           |
+| 新規プロジェクト作成 | ファイル作成 → エディタへ遷移時 | `markClean()`           |
+| ファイルを開く       | `useFileLoad` 完了時            | `markClean()`（既実装） |
+| すべてをリセット     | メニュー「新規」を選択時        | `markClean()`           |
+| 変更を破棄           | 未保存時に別ファイルを開く      | `markClean()`           |
+
+**メモ：**
+これらの操作で `markClean()` を呼ばないと、UI に不整合が生じます。
+
+- 新規プロジェクト作成直後に「保存ボタン」が活性化している
+- ファイルを開いても「保存が必要」フラグが残っている
+
+本仕様を実装する際、これらのシナリオも併せてテストすることが重要です。
+
+---
+
+## テスト方針（Red → Green）
+
+### store.test.ts に追加
+
+```typescript
+describe('isDirty の管理（onNodesChange）', () => {
+    beforeEach(() => {
+        useStore.setState({
+            nodes: [
+                { id: 'n1', type: 'entity', position: { x: 0, y: 0 }, data: { ... } },
+                { id: 'n2', type: 'relation', position: { x: 100, y: 0 }, data: { ... } },
+            ],
+            edges: [],
+        });
+    });
+
+    it('onNodesChange で座標変更があっても isDirty は true にならないこと', () => {
+        useStore.getState().markClean();
+        const before = useStore.getState().isDirty;
+
+        useStore.getState().onNodesChange([
+            { type: 'position', id: 'n1', position: { x: 150, y: 100 } }
+        ]);
+
+        const after = useStore.getState().isDirty;
+        expect(before).toBe(after);  // 変わらない
+    });
+
+    it('onNodesChange で選択フラグが変わっても isDirty は true にならないこと', () => {
+        useStore.getState().markClean();
+
+        useStore.getState().onNodesChange([
+            { type: 'select', id: 'n1', selected: true }
+        ]);
+
+        expect(useStore.getState().isDirty).toBe(false);
+    });
+
+    it('addNode で isDirty が true になること', () => {
+        useStore.getState().markClean();
+        useStore.getState().addNode('entity', { x: 200, y: 200 });
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+
+    it('deleteNode で isDirty が true になること', () => {
+        useStore.getState().markClean();
+        useStore.getState().deleteNode('n1');
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+
+    it('onConnect でエッジ接続時に isDirty が true になること', () => {
+        useStore.getState().markClean();
+
+        useStore.getState().onConnect({
+            source: 'n1',
+            target: 'n2',
+            sourceHandle: null,
+            targetHandle: null,
+        });
+
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+
+    it('markClean でリセットできること', () => {
+        useStore.getState().markDirty();
+        expect(useStore.getState().isDirty).toBe(true);
+
+        useStore.getState().markClean();
+        expect(useStore.getState().isDirty).toBe(false);
+    });
+});
+```
+
+### GraphCanvas.test.tsx に追加
+
+```typescript
+describe('onNodeDragStop', () => {
+    it('ドラッグ終了時に markDirty が呼ばれること', async () => {
+        useStore.getState().markClean();
+
+        const { getByTestId } = render(<GraphCanvas ... />);
+        const node = getByTestId('node-entity-1');
+
+        fireEvent.mouseDown(node);
+        fireEvent.drag(node, { deltaX: 50, deltaY: 50 });
+        fireEvent.mouseUp(node);
+
+        // ドラッグ後に isDirty が true になっていること
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+});
+```
+
+---
+
+## 実装順序
+
+1. `src/store.ts` の `onNodesChange` から `get().markDirty()` を削除（Red）
+2. テストを実行：現在の onNodeDragStop テストが fail する（期待通り）
+3. `src/components/GraphCanvas.tsx` に `onNodeDragStop` ハンドラを追加（Green）
+4. テストを実行：全テスト pass
+5. `docs/STATUS.md` 更新
+
+---
+
+## 将来の拡張
+
+### オートセーブの実装
+
+```typescript
+// useEffect で isDirty を監視
+useEffect(() => {
+  if (!isDirty) return;
+
+  // 3秒間の無操作後に自動保存
+  const timer = setTimeout(() => {
+    save();
+  }, 3000);
+
+  return () => clearTimeout(timer);
+}, [isDirty]);
+```
+
+`isDirty` が「ドラッグだけで立つ」と、オートセーブが頻繁に走ってしまい、不効率です。
+本仕様により、オートセーブは「本当に必要な時」だけ走ります。
+
+### ウィンドウ閉じる際の警告
+
+```typescript
+useCloseGuard({
+  onRequestClose: () => {
+    if (isDirty) {
+      // 未保存の変更がある場合のみダイアログ表示
+      setCloseDialogOpen(true);
+    } else {
+      // ドラッグだけなら警告しない
+      getCurrentWindow().close();
+    }
+  },
+});
+```
+
+---
+
+## 補足：viewport の変更について
+
+```typescript
+setViewport: (viewport) => set({ viewport }),
+```
+
+`viewport`（ズームレベル・パン位置）は persistence 対象ですが、
+`markDirty` を呼んでいません。これは正しい設計です。
+
+理由：
+
+- ユーザーがズームレベルを変えても「ファイルの内容」は変わらない
+- ズーム位置の復元は localStorage で十分（ファイル保存は不要）
+
+この原則を `nodes` の座標にも適用したのが本仕様です。
