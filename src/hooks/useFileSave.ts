@@ -1,19 +1,28 @@
 // src/hooks/useFileSave.ts
-//
-// ファイル保存ロジックを担うカスタムフック。
-// save()   : パスが記憶済みなら上書き、なければダイアログを開く
-// saveAs() : 常にダイアログを開き、コピー名（連番）で保存してパスを更新する
-// 保存成功・失敗時に Sonner トーストで通知する。
 
 import { useState } from 'react';
 import { writeTextFile } from '@tauri-apps/plugin-fs';
 import { save as dialogSave } from '@tauri-apps/plugin-dialog';
 import { toast } from 'sonner';
-import { useStore } from '@/store';
 import { useRecentProjectsStore } from '@/store/recentProjectsStore';
 import { nextCopyName } from '@/lib/copyName';
+import { collectSaveData } from '@/store/selectors';
+import { useStore } from '@/store';
+import { Node, Edge } from '@xyflow/react';
+import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 
 const SAVE_PATH_KEY = 'vt-save-path';
+
+// 2. 保存データの型を定義しておくと安全です
+interface SaveData {
+    version: number;
+    savedAt: string;
+    name: string;
+    description: string;
+    nodes: Node<TypeDBNodeData>[];
+    edges: Edge<TypeDBEdgeData>[];
+    narration: string;
+}
 
 interface UseFileSaveReturn {
     save: () => Promise<void>;
@@ -21,27 +30,22 @@ interface UseFileSaveReturn {
     filePath: string | null;
 }
 
-// 保存するデータを組み立てて JSON 文字列を返す（name を上書き可能）
 function buildJson(overrideName?: string): string {
-    const { nodes, edges, narration, projectName, projectDescription } =
-        useStore.getState();
+    const { nodes, edges, narration, projectName, projectDescription } = collectSaveData();
 
-    return JSON.stringify(
-        {
-            version: 1,
-            savedAt: new Date().toISOString(),
-            name: overrideName ?? projectName,
-            description: projectDescription,
-            nodes,
-            edges,
-            narration,
-        },
-        null,
-        2
-    );
+    const data: SaveData = {
+        version: 1,
+        savedAt: new Date().toISOString(),
+        name: overrideName ?? projectName,
+        description: projectDescription,
+        nodes,
+        edges,
+        narration,
+    };
+
+    return JSON.stringify(data, null, 2);
 }
 
-// 書き込み成功後の共通後処理
 function afterSave(
     targetPath: string,
     name: string,
@@ -50,6 +54,7 @@ function afterSave(
 ): void {
     localStorage.setItem(SAVE_PATH_KEY, targetPath);
     setFilePath(targetPath);
+
     useStore.getState().markClean();
 
     useRecentProjectsStore.getState().addRecent({
@@ -70,7 +75,6 @@ export function useFileSave(): UseFileSaveReturn {
         () => localStorage.getItem(SAVE_PATH_KEY)
     );
 
-    // パスが記憶済みなら上書き、なければダイアログを開く
     const save = async () => {
         let targetPath = filePath;
 
@@ -80,28 +84,24 @@ export function useFileSave(): UseFileSaveReturn {
                 filters: [{ name: 'JSON', extensions: ['json'] }],
             });
             if (!selected) return;
-            targetPath = selected;
+            targetPath = selected as string; // 型の微調整
         }
-
-        const { projectName, projectDescription } = useStore.getState();
 
         try {
             await writeTextFile(targetPath, buildJson());
+            const { projectName, projectDescription } = collectSaveData();
             afterSave(targetPath, projectName, projectDescription, setFilePath);
         } catch (error) {
             toast.error('保存に失敗しました', { description: String(error) });
         }
     };
 
-    // 常にダイアログを開き、コピー名（連番）で保存してパスを更新する
     const saveAs = async () => {
-        const { projectName, projectDescription } = useStore.getState();
+        const { projectName, projectDescription } = collectSaveData();
 
-        // recentProjects の name 一覧から次のコピー名を生成する
         const existingNames = useRecentProjectsStore.getState().recents.map(r => r.name);
         const copyName = nextCopyName(projectName, existingNames);
 
-        // 現在のファイル名をデフォルトパスに使う
         const defaultPath = filePath
             ? filePath.split(/[\\/]/).pop() ?? 'schema.json'
             : 'schema.json';
@@ -113,10 +113,9 @@ export function useFileSave(): UseFileSaveReturn {
         if (!selected) return;
 
         try {
-            await writeTextFile(selected, buildJson(copyName));
-            // store の projectName をコピー名に更新する
+            await writeTextFile(selected as string, buildJson(copyName));
             useStore.getState().setProjectMeta(copyName, projectDescription);
-            afterSave(selected, copyName, projectDescription, setFilePath);
+            afterSave(selected as string, copyName, projectDescription, setFilePath);
         } catch (error) {
             toast.error('保存に失敗しました', { description: String(error) });
         }

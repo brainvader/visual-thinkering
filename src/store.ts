@@ -16,29 +16,34 @@ import {
 } from '@xyflow/react';
 import { TypeDBNodeData, TypeDBEdgeData, TypeDBMetaType, AttributeValueType } from '@/types';
 
-interface GraphState {
+export interface GraphState {
     nodes: Node<TypeDBNodeData>[];
-    edges: Edge<TypeDBEdgeData>[];
-    narration: string;
-    viewport: Viewport;
     onNodesChange: OnNodesChange<Node<TypeDBNodeData>>;
-    onEdgesChange: OnEdgesChange<Edge<TypeDBEdgeData>>;
-    onConnect: OnConnect;
+    onNodeDragStop: OnNodesChange<Node<TypeDBNodeData>>;
     setNodes: (nodes: Node<TypeDBNodeData>[]) => void;
-    deleteNode: (nodeId: string) => void;
     addNode: (type: TypeDBMetaType, position: { x: number; y: number }) => string;
+    deleteNode: (nodeId: string) => void;
     updateNodeLabel: (nodeId: string, label: string) => void;
     // Attribute ノードの value 型を更新する
     updateNodeValueType: (nodeId: string, valueType: AttributeValueType) => void;
     // ノードの abstract フラグを更新する
     updateNodeAbstract: (nodeId: string, isAbstract: boolean) => void;
-    setNarration: (text: string) => void;
-    setViewport: (viewport: Viewport) => void;
-    updateEdgeRole: (edgeId: string, role: string) => void;
+
+    edges: Edge<TypeDBEdgeData>[];
+    onEdgesChange: OnEdgesChange<Edge<TypeDBEdgeData>>;
+    onConnect: OnConnect;
     deleteEdge: (edgeId: string) => void;
+    updateEdgeRole: (edgeId: string, role: string) => void;
+
+    narration: string;
+    setNarration: (text: string) => void;
+    viewport: Viewport;
+    setViewport: (viewport: Viewport) => void;
+
     isDirty: boolean;
     markDirty: () => void;
     markClean: () => void;
+
     projectName: string;
     projectDescription: string;
     setProjectMeta: (name: string, description: string) => void;
@@ -61,8 +66,13 @@ export const useStore = create<GraphState>()(
 
             onNodesChange: (changes) => {
                 set({ nodes: applyNodeChanges(changes, get().nodes) });
+                // get().markDirty();
+            },
+
+            onNodeDragStop: () => {
                 get().markDirty();
             },
+
 
             onEdgesChange: (changes: EdgeChange<Edge<TypeDBEdgeData>>[]) => {
                 set({ edges: applyEdgeChanges(changes, get().edges) });

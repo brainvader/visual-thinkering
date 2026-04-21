@@ -34,7 +34,7 @@ interface GraphCanvasProps {
     edges: Edge<TypeDBEdgeData>[];
     onNodesChange: OnNodesChange<Node<TypeDBNodeData>>;
     onEdgesChange: OnEdgesChange<Edge<TypeDBEdgeData>>;
-    onConnect: OnConnect;
+    onNodeDragStop?: (event: React.MouseEvent | MouseEvent, node: Node<TypeDBNodeData>, nodes: Node<TypeDBNodeData>[]) => void; onConnect: OnConnect;
     onNodeClick: (event: React.MouseEvent, node: Node<TypeDBNodeData>) => void;
     onEdgeClick?: (event: React.MouseEvent, edge: Edge<TypeDBEdgeData>) => void;
     onPaneClick: () => void;
