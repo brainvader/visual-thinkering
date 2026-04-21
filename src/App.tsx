@@ -21,13 +21,12 @@ import { useCloseGuard } from './hooks/useCloseGuard';
 import { UnsavedDialog } from './components/UnsavedDialog';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 
-// App コンポーネントの props 定義を追加
 interface AppProps {
   onBack?: () => void;
 }
 
 export default function App({ onBack }: AppProps) {
-  // 無限ループ防止のため個別に state を取得
+  // Store から必要な状態とアクションを抽出
   const nodes = useStore((s) => s.nodes);
   const edges = useStore((s) => s.edges);
   const onNodesChange = useStore((s) => s.onNodesChange);
@@ -39,42 +38,53 @@ export default function App({ onBack }: AppProps) {
   const updateNodeValueType = useStore((s) => s.updateNodeValueType);
   const updateEdgeRole = useStore((s) => s.updateEdgeRole);
   const deleteEdge = useStore((s) => s.deleteEdge);
-  const narration = useStore((s) => s.narration);
   const viewport = useStore((s) => s.viewport);
   const setViewport = useStore((s) => s.setViewport);
+  const isDirty = useStore((s) => s.isDirty);
+  const markClean = useStore((s) => s.markClean);
+  const markDirty = useStore((s) => s.markDirty);
+  const setProjectMeta = useStore((s) => s.setProjectMeta);
+  const updateNodeAbstract = useStore((s) => s.updateNodeAbstract);
 
-  // 選択状態はグラフ状態とは独立した UI の一時状態
-  // ノードとエッジは同時選択しない
   const [selectedNode, setSelectedNode] = React.useState<Node<TypeDBNodeData> | null>(null);
   const [selectedEdge, setSelectedEdge] = React.useState<Edge<TypeDBEdgeData> | null>(null);
-
-  // ファイル保存フック
-  const { save, saveAs, filePath } = useFileSave();
-  const { load } = useFileLoad();
-
   const [closeDialogOpen, setCloseDialogOpen] = React.useState(false);
 
-  const updateNodeAbstract = useStore((s) => s.updateNodeAbstract);
+  // 1. useFileSave の設定
+  // useStore への依存を解消し、callback でストアを更新するように修正
+  const { save, saveAs, filePath } = useFileSave({
+    onSuccess: (_, name, description) => {
+      markClean();
+      setProjectMeta(name, description);
+    },
+  });
+
+  const { load } = useFileLoad();
 
   // アプリ終了時の未保存確認
   useCloseGuard({
-    onRequestClose: () => setCloseDialogOpen(true),
+    onRequestClose: () => {
+      if (isDirty) {
+        setCloseDialogOpen(true);
+      } else {
+        getCurrentWindow().close();
+      }
+    },
   });
 
-
-  // アプリ起動時にファイルを読み込む
+  // 初期読み込み
   useEffect(() => {
     load();
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const onNodeClick = useCallback((_event: React.MouseEvent, node: Node<TypeDBNodeData>) => {
     setSelectedNode(node);
-    setSelectedEdge(null); // エッジ選択を解除
+    setSelectedEdge(null);
   }, []);
 
   const onEdgeClick = useCallback((_event: React.MouseEvent, edge: Edge<TypeDBEdgeData>) => {
     setSelectedEdge(edge);
-    setSelectedNode(null); // ノード選択を解除
+    setSelectedNode(null);
   }, []);
 
   const onPaneClick = useCallback(() => {
@@ -82,7 +92,6 @@ export default function App({ onBack }: AppProps) {
     setSelectedEdge(null);
   }, []);
 
-  // 削除後にインスペクターも閉じる
   const handleDeleteNode = useCallback((nodeId: string) => {
     deleteNode(nodeId);
     setSelectedNode(null);
@@ -93,27 +102,24 @@ export default function App({ onBack }: AppProps) {
     setSelectedEdge(null);
   }, [deleteEdge]);
 
-  // ノード追加直後に選択状態にする
   const onNodeAdded = useCallback((nodeId: string) => {
     const node = useStore.getState().nodes.find((n) => n.id === nodeId) ?? null;
     setSelectedNode(node);
     setSelectedEdge(null);
   }, []);
 
-  // LLM への命令送信
   const handleSendInstruction = useCallback(
     (instruction: string) => {
       console.log('[LLM] instruction:', instruction);
-      console.log('[LLM] context (narration):', narration);
     },
-    [narration]
+    []
   );
 
-  // Ctrl+S でファイル保存を発火する
+  // 2. ショートカットキーのイベントハンドラ
   const handleKeyDown = useCallback((e: KeyboardEvent) => {
     if ((e.ctrlKey || e.metaKey) && e.key === 's') {
       e.preventDefault();
-      save();
+      save(); // ここで useFileSave の save を実行
     }
   }, [save]);
 
@@ -124,10 +130,13 @@ export default function App({ onBack }: AppProps) {
 
   return (
     <div className="h-screen w-screen overflow-hidden bg-background flex flex-col">
-      {/* ヘッダーバーを最上部に追加 */}
-      <AppHeader filePath={filePath} onSave={save} onSaveAs={saveAs} onBack={onBack} />
+      <AppHeader
+        filePath={filePath}
+        onSave={save}
+        onSaveAs={saveAs}
+        onBack={onBack}
+      />
 
-      {/* 未保存確認ダイアログ */}
       <UnsavedDialog
         open={closeDialogOpen}
         onSaveAndClose={async () => {
@@ -140,10 +149,8 @@ export default function App({ onBack }: AppProps) {
         onCancel={() => setCloseDialogOpen(false)}
       />
 
-      {/* 既存の4パネルレイアウト（変更なし） */}
       <div className="flex-1 overflow-hidden">
         <ResizablePanelGroup orientation="horizontal">
-
           <ResizablePanel defaultSize={20} minSize={15}>
             <NarrationPanel />
           </ResizablePanel>
@@ -170,6 +177,8 @@ export default function App({ onBack }: AppProps) {
                     onNodeAdded={onNodeAdded}
                     viewport={viewport}
                     setViewport={setViewport}
+                    // 3. スペックに基づき、ドラッグ終了時に markDirty を実行
+                    onNodeDragStop={() => markDirty()}
                   />
                 </main>
               </ResizablePanel>
@@ -198,7 +207,6 @@ export default function App({ onBack }: AppProps) {
               updateNodeAbstract={updateNodeAbstract}
             />
           </ResizablePanel>
-
         </ResizablePanelGroup>
       </div>
     </div>

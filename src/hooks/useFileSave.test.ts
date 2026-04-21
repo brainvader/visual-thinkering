@@ -133,10 +133,15 @@ describe('useFileSave: 保存内容の検証', () => {
     });
 });
 
-describe('useFileSave: markClean 連携', () => {
-    it('保存成功後に isDirty が false になること', async () => {
+describe('useFileSave: markClean 連携（callback 経由）', () => {
+    it('save() 成功後に callback 内で markClean() を呼ぶと isDirty が false になること', async () => {
         useStore.getState().markDirty();
-        const { result } = renderHook(() => useFileSave());
+        localStorage.setItem('vt-save-path', '/mock/path/schema.json');
+        const { result } = renderHook(() => useFileSave({
+            onSuccess: () => {
+                useStore.getState().markClean();
+            },
+        }));
 
         await act(async () => { await result.current.save(); });
 
@@ -146,7 +151,11 @@ describe('useFileSave: markClean 連携', () => {
     it('ダイアログキャンセル時は isDirty が変化しないこと', async () => {
         useStore.getState().markDirty();
         vi.mocked(dialogSave).mockResolvedValueOnce(null);
-        const { result } = renderHook(() => useFileSave());
+        const { result } = renderHook(() => useFileSave({
+            onSuccess: () => {
+                useStore.getState().markClean();
+            },
+        }));
 
         await act(async () => { await result.current.save(); });
 
@@ -157,7 +166,11 @@ describe('useFileSave: markClean 連携', () => {
         useStore.getState().markDirty();
         vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
         localStorage.setItem('vt-save-path', '/existing/path/schema.json');
-        const { result } = renderHook(() => useFileSave());
+        const { result } = renderHook(() => useFileSave({
+            onSuccess: () => {
+                useStore.getState().markClean();
+            },
+        }));
 
         await act(async () => { await result.current.save(); });
 
@@ -270,11 +283,15 @@ describe('useFileSave: saveAs() コピー名', () => {
         expect(JSON.parse(written).name).toBe('HRシステム 003');
     });
 
-    it('保存後に store の projectName がコピー名に更新されること', async () => {
+    it('callback で setProjectMeta を呼ぶと store の projectName がコピー名に更新されること', async () => {
         vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/schema.json');
         useStore.setState({ projectName: 'HRシステム' });
 
-        const { result } = renderHook(() => useFileSave());
+        const { result } = renderHook(() => useFileSave({
+            onSuccess: (_, name, description) => {
+                useStore.getState().setProjectMeta(name, description);
+            },
+        }));
         await act(async () => { await result.current.saveAs(); });
 
         expect(useStore.getState().projectName).toBe('HRシステム 001');
@@ -351,7 +368,11 @@ describe('useFileSave: saveAs() markClean 連携', () => {
     it('保存成功後に isDirty が false になること', async () => {
         useStore.getState().markDirty();
         vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/schema.json');
-        const { result } = renderHook(() => useFileSave());
+        const { result } = renderHook(() => useFileSave({
+            onSuccess: () => {
+                useStore.getState().markClean();
+            },
+        }));
 
         await act(async () => { await result.current.saveAs(); });
 
@@ -361,10 +382,104 @@ describe('useFileSave: saveAs() markClean 連携', () => {
     it('ダイアログキャンセル時は isDirty が変化しないこと', async () => {
         useStore.getState().markDirty();
         vi.mocked(dialogSave).mockResolvedValueOnce(null);
-        const { result } = renderHook(() => useFileSave());
+        const { result } = renderHook(() => useFileSave({
+            onSuccess: () => {
+                useStore.getState().markClean();
+            },
+        }));
 
         await act(async () => { await result.current.saveAs(); });
 
         expect(useStore.getState().isDirty).toBe(true);
+    });
+});
+
+// ─── callback オプションのテスト（新規） ──────────────────────────────────────
+
+describe('useFileSave: onSuccess callback（基本動作）', () => {
+    it('save() 成功時に onSuccess callback が (path, name, description) で呼ばれること', async () => {
+        useStore.setState({
+            projectName: 'TestProject',
+            projectDescription: 'Test Desc',
+        });
+        localStorage.setItem('vt-save-path', '/mock/path/schema.json');
+        const mockCallback = vi.fn();
+        const { result } = renderHook(() => useFileSave({ onSuccess: mockCallback }));
+
+        await act(async () => { await result.current.save(); });
+
+        expect(mockCallback).toHaveBeenCalledOnce();
+        expect(mockCallback).toHaveBeenCalledWith(
+            '/mock/path/schema.json',
+            'TestProject',
+            'Test Desc'
+        );
+    });
+
+    it('saveAs() 成功時に onSuccess callback がコピー名で呼ばれること', async () => {
+        useStore.setState({
+            projectName: 'TestProject',
+            projectDescription: 'Test Desc',
+        });
+        vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/schema.json');
+        const mockCallback = vi.fn();
+        const { result } = renderHook(() => useFileSave({ onSuccess: mockCallback }));
+
+        await act(async () => { await result.current.saveAs(); });
+
+        expect(mockCallback).toHaveBeenCalledOnce();
+        expect(mockCallback).toHaveBeenCalledWith(
+            '/new/path/schema.json',
+            'TestProject 001',
+            'Test Desc'
+        );
+    });
+
+    it('ダイアログキャンセル時は onSuccess callback が呼ばれないこと', async () => {
+        vi.mocked(dialogSave).mockResolvedValueOnce(null);
+        const mockCallback = vi.fn();
+        const { result } = renderHook(() => useFileSave({ onSuccess: mockCallback }));
+
+        await act(async () => { await result.current.save(); });
+
+        expect(mockCallback).not.toHaveBeenCalled();
+    });
+
+    it('writeTextFile 失敗時は onSuccess callback が呼ばれないこと', async () => {
+        vi.mocked(writeTextFile).mockRejectedValueOnce(new Error('disk full'));
+        localStorage.setItem('vt-save-path', '/mock/path/schema.json');
+        const mockCallback = vi.fn();
+        const { result } = renderHook(() => useFileSave({ onSuccess: mockCallback }));
+
+        await act(async () => { await result.current.save(); });
+
+        expect(mockCallback).not.toHaveBeenCalled();
+    });
+});
+
+describe('useFileSave: callback なし時の動作（従来互換性）', () => {
+    it('callback なしで save() すると toast / localStorage は実行されるが markClean は呼ばれないこと', async () => {
+        useStore.getState().markDirty();
+        localStorage.setItem('vt-save-path', '/mock/path/schema.json');
+        const { result } = renderHook(() => useFileSave()); // callback なし
+
+        await act(async () => { await result.current.save(); });
+
+        // 期待値: toast / localStorage は実行される
+        expect(toast.success).toHaveBeenCalledOnce();
+        expect(localStorage.getItem('vt-save-path')).toBe('/mock/path/schema.json');
+        // 但し isDirty は true のまま（callback で markClean を呼ばないため）
+        expect(useStore.getState().isDirty).toBe(true);
+    });
+
+    it('callback なしで saveAs() すると projectName は更新されないこと', async () => {
+        useStore.setState({ projectName: 'Original' });
+        vi.mocked(dialogSave).mockResolvedValueOnce('/new/path/schema.json');
+        const { result } = renderHook(() => useFileSave()); // callback なし
+
+        await act(async () => { await result.current.saveAs(); });
+
+        // 期待値: projectName は変わらない（callback で setProjectMeta を呼ばないため）
+        expect(useStore.getState().projectName).toBe('Original');
     });
 });

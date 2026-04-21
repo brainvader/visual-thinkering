@@ -7,7 +7,6 @@ import { toast } from 'sonner';
 import { useRecentProjectsStore } from '@/store/recentProjectsStore';
 import { nextCopyName } from '@/lib/copyName';
 import { collectSaveData } from '@/store/selectors';
-import { useStore } from '@/store';
 import { Node, Edge } from '@xyflow/react';
 import { TypeDBNodeData, TypeDBEdgeData } from '@/types';
 
@@ -22,6 +21,11 @@ interface SaveData {
     nodes: Node<TypeDBNodeData>[];
     edges: Edge<TypeDBEdgeData>[];
     narration: string;
+}
+
+// 保存成功時に呼び出されるコールバック型
+interface SaveOptions {
+    onSuccess?: (newPath: string, name: string, description: string) => void;
 }
 
 interface UseFileSaveReturn {
@@ -46,16 +50,16 @@ function buildJson(overrideName?: string): string {
     return JSON.stringify(data, null, 2);
 }
 
+// useStore への直接的な依存を排除。callback を呼び出すのみ
 function afterSave(
     targetPath: string,
     name: string,
     description: string,
-    setFilePath: (path: string) => void
+    setFilePath: (path: string) => void,
+    onSuccess?: (newPath: string, name: string, description: string) => void
 ): void {
     localStorage.setItem(SAVE_PATH_KEY, targetPath);
     setFilePath(targetPath);
-
-    useStore.getState().markClean();
 
     useRecentProjectsStore.getState().addRecent({
         filePath: targetPath,
@@ -64,13 +68,16 @@ function afterSave(
         lastOpenedAt: new Date().toISOString(),
     });
 
+    // 外部に後処理を委譲（useStore の呼び出しはここにはない）
+    onSuccess?.(targetPath, name, description);
+
     toast.success('保存しました', {
         description: targetPath,
         duration: 2000,
     });
 }
 
-export function useFileSave(): UseFileSaveReturn {
+export function useFileSave(options?: SaveOptions): UseFileSaveReturn {
     const [filePath, setFilePath] = useState<string | null>(
         () => localStorage.getItem(SAVE_PATH_KEY)
     );
@@ -90,7 +97,7 @@ export function useFileSave(): UseFileSaveReturn {
         try {
             await writeTextFile(targetPath, buildJson());
             const { projectName, projectDescription } = collectSaveData();
-            afterSave(targetPath, projectName, projectDescription, setFilePath);
+            afterSave(targetPath, projectName, projectDescription, setFilePath, options?.onSuccess);
         } catch (error) {
             toast.error('保存に失敗しました', { description: String(error) });
         }
@@ -114,8 +121,8 @@ export function useFileSave(): UseFileSaveReturn {
 
         try {
             await writeTextFile(selected as string, buildJson(copyName));
-            useStore.getState().setProjectMeta(copyName, projectDescription);
-            afterSave(selected as string, copyName, projectDescription, setFilePath);
+            // callback で処理を委譲（setProjectMeta はここにはない）
+            afterSave(selected as string, copyName, projectDescription, setFilePath, options?.onSuccess);
         } catch (error) {
             toast.error('保存に失敗しました', { description: String(error) });
         }

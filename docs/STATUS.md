@@ -1,6 +1,6 @@
 # STATUS.md — 実装状況
 
-> 最終更新: 2026-04-19
+> 最終更新: 2026-04-21
 > 粒度: 機能単位（ユーザーが体験できる単位）
 > 詳細な仕様・テスト方針は各 `docs/specs/` ファイルを参照
 
@@ -15,6 +15,19 @@
 | ❌   | 未着手                   |
 | ⚠️   | 実装済みだがテスト未整備 |
 | 🔁   | 保留・再検討中           |
+
+---
+
+## useFileSave フック Zustand 依存排除 [`useFileSave-decoupling.md`](specs/useFileSave-decoupling.md)
+
+| 機能                                                   | ステータス | テスト |
+| ------------------------------------------------------ | ---------- | ------ |
+| SaveOptions インターフェース追加（onSuccess callback） | ✅         | ✅     |
+| afterSave() の callback パターン化                     | ✅         | ✅     |
+| App.tsx で callback 経由の markClean() 注入            | ✅         | ✅     |
+| App.tsx で callback 経由の setProjectMeta() 注入       | ✅         | ✅     |
+| callback なし時の backward compatibility テスト        | ✅         | ✅     |
+| callback あり時の動作検証テスト                        | ✅         | ✅     |
 
 ---
 
@@ -102,3 +115,18 @@
 | 既存 plays エッジとの照合による冗長接続の拒否   | ✅         | ✅     |
 | `GraphCanvas.tsx` の呼び出し側に `edges` を渡す | ✅         | -      |
 | 既存テストの `edges: []` 後方互換対応           | ✅         | ✅     |
+
+---
+
+## useFileSave フックの Zustand 依存排除 [`useFileSave-decoupling.md`](specs/useFileSave-decoupling.md)
+
+| 機能                                                 | ステータス | テスト |
+| ---------------------------------------------------- | ---------- | ------ |
+| `SaveOptions` インターフェース（callback サポート）  | ✅         | ✅     |
+| `useFileSave` から `useStore` import を削除          | ✅         | ✅     |
+| `afterSave()` を callback-based design に変更        | ✅         | ✅     |
+| `save()` / `saveAs()` で callback を呼び出し         | ✅         | ✅     |
+| `App.tsx` で callback 内に `markClean()` を注入      | ✅         | ✅     |
+| `App.tsx` で callback 内に `setProjectMeta()` を注入 | ✅         | ✅     |
+| callback なし時の従来互換性を保持                    | ✅         | ✅     |
+| useFileSave テスト（33 tests all passing）           | ✅         | ✅     |
